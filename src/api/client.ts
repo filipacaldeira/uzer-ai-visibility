@@ -1,5 +1,8 @@
 const BASE_URL = '/api-proxy/api/v1'
-const API_KEY = import.meta.env.VITE_API_KEY || 'pk_cbefa9b7-f0f9-4a7f-b0fb-35872fdc699f_b2783724da92e192a20c1d1b15f092d73695c7621f5f66efbc3c0279c31f2848'
+// Provided at build time: .env.local for local builds/dev, VITE_API_KEY env var
+// on Netlify CI builds. Never hardcode the key here — this file is versioned.
+const API_KEY = import.meta.env.VITE_API_KEY
+if (!API_KEY) throw new Error('VITE_API_KEY is not set — add it to dashboard/.env.local or the Netlify environment')
 
 // Some upstream endpoints (notably /visibility) legitimately take 9–25s, so the
 // timeout is generous. Successful responses are cached in localStorage: fresh
