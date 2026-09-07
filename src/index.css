@@ -1,0 +1,121 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Dark theme (default) ─────────────────────────────────── */
+:root {
+  --brand-bg:           8 13 30;
+  --brand-sidebar:      30 64 175;
+  --brand-card:         16 24 52;
+  --brand-card-from:    25 38 78;
+  --brand-card-to:      12 19 44;
+  --brand-elevated:     32 48 92;
+  --brand-primary:      6 182 212;
+  --brand-primary-dim:  8 145 178;
+  --brand-secondary:    223 255 17;
+  --brand-tertiary:     139 92 246;
+  --brand-text:         253 248 252;
+  --brand-muted:        152 161 184;
+  --brand-dim:          122 131 155;
+  --brand-border:       40 51 71;
+  --brand-border-bright:57 68 96;
+  --brand-success:      223 255 17;
+  --brand-warning:      245 158 11;
+  --brand-danger:       239 68 68;
+}
+
+/* ── Light theme ──────────────────────────────────────────── */
+[data-theme="light"] {
+  --brand-bg:           232 236 245;
+  --brand-sidebar:      255 255 255;
+  --brand-card:         255 255 255;
+  --brand-card-from:    255 255 255;
+  --brand-card-to:      246 249 254;
+  --brand-elevated:     232 237 249;
+  --brand-text:         26 31 46;
+  --brand-muted:        84 93 117;
+  --brand-dim:          118 127 148;
+  --brand-border:       216 223 240;
+  --brand-border-bright:184 196 216;
+  --brand-success:      101 163 13;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background-color: rgb(var(--brand-bg));
+  color: rgb(var(--brand-text));
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgb(var(--brand-bg)); }
+::-webkit-scrollbar-thumb { background: rgb(var(--brand-border-bright)); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgb(var(--brand-primary)); }
+
+/* Recharts overrides */
+.recharts-tooltip-wrapper .recharts-default-tooltip {
+  background-color: #10183C !important;
+  border-color: #2C3F70 !important;
+  border-radius: 8px !important;
+}
+
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: #19234B;
+}
+
+.recharts-text { fill: #9BA8C8 !important; }
+
+@layer components {
+  .card {
+    background: linear-gradient(160deg, rgb(var(--brand-card-from)) 0%, rgb(var(--brand-card-to)) 100%);
+    @apply border border-brand-border rounded-2xl p-5 shadow-[0_1px_2px_rgba(0,0,0,0.25),0_8px_24px_-12px_rgba(0,0,0,0.4)];
+  }
+  .card-sm {
+    background: linear-gradient(160deg, rgb(var(--brand-card-from)) 0%, rgb(var(--brand-card-to)) 100%);
+    @apply border border-brand-border rounded-xl p-4;
+  }
+  .panel-gradient {
+    background: linear-gradient(160deg, rgb(var(--brand-card-from)) 0%, rgb(var(--brand-card-to)) 100%);
+  }
+  .btn-primary {
+    @apply bg-brand-primary text-brand-bg font-semibold px-4 py-2 rounded-full text-sm hover:bg-brand-primary/90 transition-colors;
+  }
+  .badge {
+    @apply text-xs font-medium px-2.5 py-0.5 rounded-full;
+  }
+  .metric-value {
+    @apply text-2xl font-semibold text-brand-text;
+  }
+  .metric-label {
+    @apply text-xs text-brand-muted uppercase tracking-wider;
+  }
+  .skeleton {
+    @apply bg-brand-elevated rounded animate-pulse;
+  }
+  .page-title {
+    @apply text-xl font-bold text-brand-text;
+  }
+  .section-title {
+    @apply text-sm font-semibold text-brand-muted uppercase tracking-wider mb-3;
+  }
+  .delta-up { @apply text-brand-success; }
+  .delta-down { @apply text-brand-danger; }
+  .delta-neutral { @apply text-brand-muted; }
+  .table-row { @apply border-b border-brand-border last:border-0 hover:bg-brand-elevated/50 transition-colors; }
+  .th { @apply text-xs text-brand-muted uppercase tracking-wider py-3 px-4 text-left; }
+  .td { @apply text-sm text-brand-text py-3 px-4; }
+}
