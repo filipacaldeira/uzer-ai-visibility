@@ -29,7 +29,7 @@ export const headlines: Record<string, (d: ReportData) => string> = {
   },
 
   score: d => {
-    const pos = d.avgPosition != null ? ` — mas quando aparece está em ${Math.round(d.avgPosition)}.º lugar` : ''
+    const pos = d.avgPosition != null ? ` — mas quando aparece está em ${Math.round(d.avgPosition)}º lugar` : ''
     return `A ${d.brand} aparece em apenas ${d.score}% das respostas${pos}`
   },
 

@@ -10,11 +10,16 @@ const T = {
   navy: '#0B1326', ink: '#10182E', body: '#3C3C3C', muted: '#5A6378',
   border: '#E3E5EE', purple: '#8B5CF6', cyan: '#06B6D4', lime: '#DFFF11',
   green: '#30A46C', amber: '#F5A623', red: '#E5484D',
-  bar: '#0B1326', barComp: '#9DA5BC', paper: '#F5F6FA',
+  bar: '#EA3624', barComp: '#9DA5BC', paper: '#F5F6FA', brandRed: '#EA3624',
 }
 
+// 3.689 — thousands with a dot (user rule)
+const fmtInt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+// 1.9º / 2º — ordinal without the dot before º
+const fmtPos = (n: number) => `${n}º`
+
 const OVERRIDES_KEY = 'report-headline-overrides'
-const SCREEN_IDS = ['capa', 'sumario', 'score', 'sov', 'motores', 'servicos', 'intencoes', 'perguntas', 'narrativa', 'fontes']
+const SCREEN_IDS = ['capa', 'sumario', 'score', 'sov', 'servicos', 'perguntas', 'motores', 'intencoes', 'narrativa', 'fontes']
 
 function readOverrides(): Record<string, string> {
   try { return JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') } catch { return {} }
@@ -25,8 +30,8 @@ function readOverrides(): Record<string, string> {
 function Eyebrow({ children, dark = false }: { children: string; dark?: boolean }) {
   return (
     <div style={{
-      color: dark ? T.lime : T.purple, fontSize: 13, letterSpacing: '0.35em',
-      textTransform: 'uppercase', fontWeight: 500, marginBottom: 14, fontFamily: 'Inter, sans-serif',
+      color: dark ? T.lime : T.purple, fontSize: 17, letterSpacing: '0.32em',
+      textTransform: 'uppercase', fontWeight: 700, marginBottom: 14, fontFamily: 'Inter, sans-serif',
     }}>{children}</div>
   )
 }
@@ -324,7 +329,7 @@ export default function Report() {
           <div style={{ marginTop: 26, color: T.cyan, fontSize: 13.5, display: 'flex', gap: 26, flexWrap: 'wrap' }}>
             <span>{d.periodLabel}</span>
             <span>{d.promptCount} perguntas monitorizadas</span>
-            <span>{d.totalRuns.toLocaleString('pt-PT')} respostas de IA analisadas</span>
+            <span>{fmtInt(d.totalRuns)} respostas de IA analisadas</span>
           </div>
           <div style={{ marginTop: 18, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             {d.models.map(m => {
@@ -361,7 +366,7 @@ export default function Report() {
       </Screen>
 
       {/* 3 — SCORE */}
-      <Screen id="score" n={3} eyebrow="Score" data={d} source={`${SOURCE} · ${d.totalRuns.toLocaleString('pt-PT')} respostas`}>
+      <Screen id="score" n={3} eyebrow="Visibility Score" data={d} source={`${SOURCE} · ${fmtInt(d.totalRuns)} respostas`}>
         <Card style={{ display: 'flex', alignItems: 'center', gap: 48, padding: '34px 44px' }}>
           <div>
             <div style={{ fontSize: 92, fontWeight: 100, color: T.ink, lineHeight: 1 }}>{d.score}<span style={{ fontSize: 30, color: T.muted }}>/100</span></div>
@@ -370,9 +375,9 @@ export default function Report() {
           <Gauge score={d.score} />
           <div style={{ display: 'grid', gap: 14 }}>
             {d.avgPosition != null && (
-              <div><div style={{ fontSize: 26, fontWeight: 300, color: T.ink }}>{d.avgPosition}.º</div><div style={{ fontSize: 12, color: T.muted }}>posição média quando citada</div></div>
+              <div><div style={{ fontSize: 26, fontWeight: 300, color: T.ink }}>{fmtPos(d.avgPosition)}</div><div style={{ fontSize: 12, color: T.muted }}>posição média quando citada</div></div>
             )}
-            <div><div style={{ fontSize: 26, fontWeight: 300, color: T.ink }}>{d.totalRuns.toLocaleString('pt-PT')}</div><div style={{ fontSize: 12, color: T.muted }}>respostas analisadas</div></div>
+            <div><div style={{ fontSize: 26, fontWeight: 300, color: T.ink }}>{fmtInt(d.totalRuns)}</div><div style={{ fontSize: 12, color: T.muted }}>respostas analisadas</div></div>
             <div style={{ fontSize: 11.5, color: T.muted }}>Tendência do período: {d.trend === 'up' ? 'a subir' : d.trend === 'down' ? 'a descer' : 'estável'}</div>
           </div>
         </Card>
@@ -388,8 +393,114 @@ export default function Report() {
         </Card>
       </Screen>
 
-      {/* 5 — MOTORES */}
-      <Screen id="motores" n={5} eyebrow="Motores" data={d} source={SOURCE}>
+      {/* 5 — SERVIÇOS */}
+      <Screen id="servicos" n={5} eyebrow="Serviços" data={d} source={SOURCE}>
+        <div className="report-grid" style={{ gridTemplateColumns: '1.15fr 1fr' }}>
+          <Card>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Score da {d.brand} e posição competitiva por tópico</div>
+            {[...d.topicRows].sort((a, b) => b.avgScore - a.avgScore).map(t => (
+              <div key={t.topic} style={{ marginBottom: 16 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                  <div style={{ width: 110, fontSize: 13, color: T.ink, fontWeight: 600, flexShrink: 0 }}>{t.topic}</div>
+                  {t.myRank != null && (
+                    <span style={{
+                      fontSize: 10.5, fontWeight: 700, borderRadius: 999, padding: '2px 9px', flexShrink: 0,
+                      background: t.myRank === 1 ? `${T.green}1f` : t.myRank <= 3 ? `${T.amber}22` : `${T.red}1a`,
+                      color: t.myRank === 1 ? T.green : t.myRank <= 3 ? '#A87413' : T.red,
+                    }}>{fmtPos(t.myRank)}</span>
+                  )}
+                  <div style={{ flex: 1, height: 14, background: '#EEF0F6', borderRadius: 7, overflow: 'hidden' }}>
+                    <div style={{ width: `${Math.max((t.avgScore / Math.max(maxTopic, 1)) * 100, 2)}%`, height: '100%', background: T.brandRed, borderRadius: 7 }} />
+                  </div>
+                  <div style={{ width: 34, textAlign: 'right', fontSize: 13, fontWeight: 600, color: T.ink }}>{t.avgScore}</div>
+                </div>
+                <div style={{ marginLeft: 120, fontSize: 11, color: T.muted, marginTop: 3 }}>
+                  presença em {t.present} de {t.nPrompts} perguntas
+                  {t.top3.length > 0 && <> · líder: <strong style={{ color: t.top3[0].isMe ? T.brandRed : T.ink }}>{t.top3[0].name}</strong> ({t.top3[0].vis}%)</>}
+                </div>
+              </div>
+            ))}
+            <div style={{ fontSize: 11, color: T.muted }}>Barra = score médio da {d.brand} (0–100) · badge = posição da {d.brand} no ranking de presença do tópico</div>
+          </Card>
+          <Card>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Visibilidade por tópico</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {[...d.topicRows].sort((a, b) => b.nPrompts - a.nPrompts).map(t => {
+                const fill = t.myVis >= 70 ? T.green : t.myVis >= 40 ? T.amber : T.red
+                const txt = t.myVis >= 40 && t.myVis < 70 ? T.navy : '#FDF8FC'
+                const size = 72 + Math.round(Math.sqrt(t.nPrompts) * 26)
+                return (
+                  <div key={t.topic} style={{
+                    width: size, height: Math.round(size * 0.72), borderRadius: 10, background: fill, color: txt,
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+                    border: '1.5px solid rgba(11,19,38,0.35)',
+                  }}>
+                    <span style={{ fontSize: size > 130 ? 13 : 10.5, fontWeight: 600, textAlign: 'center', padding: '0 6px' }}>{t.topic}</span>
+                    <span style={{ fontSize: size > 130 ? 15 : 12, fontWeight: 700 }}>{t.myVis}%</span>
+                  </div>
+                )
+              })}
+            </div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 12 }}>% de respostas do tópico que mencionam a {d.brand} · tamanho = nº de perguntas · verde ≥ 70, âmbar 40–69, vermelho &lt; 40</div>
+            <div style={{ marginTop: 14, borderTop: `1px solid ${T.border}`, paddingTop: 10 }}>
+              {[...d.topicRows].sort((a, b) => b.avgScore - a.avgScore).map(t => (
+                <div key={t.topic} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: T.body, padding: '3px 0', flexWrap: 'wrap' }}>
+                  <span style={{ width: 92, fontWeight: 600, color: T.ink }}>{t.topic}</span>
+                  {t.top3.map((b, i) => (
+                    <span key={b.name} style={{ color: b.isMe ? T.brandRed : T.muted, fontWeight: b.isMe ? 700 : 400 }}>
+                      {i + 1}. {b.name} {b.vis}%
+                    </span>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </Screen>
+
+      {/* 6 — PERGUNTAS */}
+      <Screen id="perguntas" n={6} eyebrow="Perguntas | Prompts" data={d} source={SOURCE}>
+        <div className="report-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
+          <Card>
+            <div style={{ color: T.green, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10 }}>Onde a {d.brand} ganha</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr><th style={{ ...thStyle, width: 86 }}>Tópico</th><th style={thStyle}>Pergunta</th><th style={{ ...thStyle, textAlign: 'center', width: 90 }}>Visibility Score</th><th style={{ ...thStyle, textAlign: 'center', width: 66 }}>Posição</th></tr></thead>
+              <tbody>
+                {d.bestPrompts.map(p => (
+                  <tr key={p.text}>
+                    <td style={{ ...tdStyle, color: T.purple, fontWeight: 600, fontSize: 11.5 }}>{p.topic || '—'}</td>
+                    <td style={tdStyle}>{p.text}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: T.green }}>{p.score}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>{p.position != null ? fmtPos(p.position) : '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>Visibility Score (0–100): média por resposta que pondera se a {d.brand} aparece e com que destaque; 100 = sempre presente em primeiro plano.</div>
+          </Card>
+          <Card>
+            <div style={{ color: T.red, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10 }}>Maior oportunidade</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr><th style={{ ...thStyle, width: 86 }}>Tópico</th><th style={thStyle}>Pergunta</th><th style={{ ...thStyle, textAlign: 'center', width: 62 }}>Score</th><th style={{ ...thStyle, textAlign: 'center', width: 62 }}>Fontes</th><th style={{ ...thStyle, width: 100 }}>Quem ganha</th></tr></thead>
+              <tbody>
+                {d.gapPrompts.map(p => (
+                  <tr key={p.text}>
+                    <td style={{ ...tdStyle, color: T.purple, fontWeight: 600, fontSize: 11.5 }}>{p.topic || '—'}</td>
+                    <td style={tdStyle}>{p.text}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: T.red }}>0</td>
+                    <td style={{ ...tdStyle, textAlign: 'center' }}>{p.citations}</td>
+                    <td style={{ ...tdStyle, fontWeight: 600, color: T.ink }}>{p.winner || '—'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>Perguntas onde a {d.brand} nunca aparece (score 0). Fontes = nº de sites distintos citados pela IA nessas respostas — quanto mais fontes, mais espaço há para a marca entrar na conversa.</div>
+          </Card>
+        </div>
+      </Screen>
+
+      {/* 7 — MOTORES */}
+      <Screen id="motores" n={7} eyebrow="Motores" data={d} source={SOURCE}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 18 }}>
           {d.llmCards.map(c => {
             const dom = llmDomain(c.model)
@@ -430,26 +541,8 @@ export default function Report() {
         </Card>
       </Screen>
 
-      {/* 6 — SERVIÇOS */}
-      <Screen id="servicos" n={6} eyebrow="Serviços" data={d} source={SOURCE}>
-        <Card>
-          {[...d.topicRows].sort((a, b) => b.avgScore - a.avgScore).map(t => (
-            <HBar
-              key={t.topic}
-              label={t.topic}
-              value={t.avgScore}
-              max={maxTopic}
-              isMe={t.avgScore >= 40}
-              right={`${t.avgScore}`}
-              sub={<>presença em {t.present} de {t.nPrompts} perguntas{t.topComp ? <> · concorrente mais presente: <strong style={{ color: T.ink }}>{t.topComp}</strong></> : null}</>}
-            />
-          ))}
-          <div style={{ fontSize: 11.5, color: T.muted, marginTop: 2 }}>Score médio da {d.brand} por tópico (0–100)</div>
-        </Card>
-      </Screen>
-
-      {/* 7 — INTENÇÕES */}
-      <Screen id="intencoes" n={7} eyebrow="Intenções" data={d} source={SOURCE}>
+      {/* 8 — INTENÇÕES */}
+      <Screen id="intencoes" n={8} eyebrow="Intenções" data={d} source={SOURCE}>
         <Card>
           {[...d.intentRows].sort((a, b) => (a.isRef ? 1 : 0) - (b.isRef ? 1 : 0) || b.avgScore - a.avgScore).map(r => (
             <HBar
@@ -464,34 +557,6 @@ export default function Report() {
           ))}
           <div style={{ fontSize: 11.5, color: T.muted, marginTop: 2 }}>“Marca” é a pergunta direta sobre a {d.brand} — serve de referência, não de comparação.</div>
         </Card>
-      </Screen>
-
-      {/* 8 — PERGUNTAS */}
-      <Screen id="perguntas" n={8} eyebrow="Perguntas" data={d} source={SOURCE}>
-        <div className="report-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
-          <Card>
-            <div style={{ color: T.green, fontSize: 11.5, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10 }}>Onde a {d.brand} ganha</div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={thStyle}>Pergunta</th><th style={{ ...thStyle, textAlign: 'center', width: 62 }}>Score</th><th style={{ ...thStyle, textAlign: 'center', width: 70 }}>Posição</th></tr></thead>
-              <tbody>
-                {d.bestPrompts.map(p => (
-                  <tr key={p.text}><td style={tdStyle}>{p.text}</td><td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: T.green }}>{p.score}</td><td style={{ ...tdStyle, textAlign: 'center' }}>{p.position != null ? `${p.position}.º` : '—'}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-          <Card>
-            <div style={{ color: T.red, fontSize: 11.5, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10 }}>Onde desaparece (maior oportunidade)</div>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead><tr><th style={thStyle}>Pergunta</th><th style={{ ...thStyle, textAlign: 'center', width: 70 }}>Fontes</th><th style={{ ...thStyle, width: 110 }}>Quem ganha</th></tr></thead>
-              <tbody>
-                {d.gapPrompts.map(p => (
-                  <tr key={p.text}><td style={tdStyle}>{p.text}</td><td style={{ ...tdStyle, textAlign: 'center' }}>{p.citations}</td><td style={{ ...tdStyle, fontWeight: 600, color: T.ink }}>{p.winner || '—'}</td></tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </div>
       </Screen>
 
       {/* 9 — NARRATIVA */}
@@ -559,6 +624,20 @@ export default function Report() {
             <Card>
               <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Origem das citações da {d.brand}</div>
               <Donut {...d.donut} />
+            </Card>
+            <Card>
+              <div style={{ fontSize: 12, color: T.muted, marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Top 3 fontes por motor</div>
+              {d.llmTopSources.map(r => (
+                <div key={r.model} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 11.5, color: T.body, flexWrap: 'wrap' }}>
+                  <span style={{ width: 96, display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, color: T.ink, flexShrink: 0 }}>
+                    {llmDomain(r.model) && <Favicon domain={llmDomain(r.model)!} size={12} />}
+                    {r.model === 'sonar' ? 'Perplexity' : r.model === 'google-aio' ? 'AI Overviews' : r.model === 'google-ai-mode' ? 'AI Mode' : r.model === 'gpt-4o-mini' ? 'ChatGPT' : r.model === 'gemini-2.5-flash' ? 'Gemini' : r.model}
+                  </span>
+                  {r.domains.map(dom => (
+                    <span key={dom} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Favicon domain={dom} size={11} />{dom}</span>
+                  ))}
+                </div>
+              ))}
             </Card>
             <Card>
               <div style={{ fontSize: 12, color: T.muted, marginBottom: 6, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Risco de concentração</div>

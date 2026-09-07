@@ -31,13 +31,14 @@ export interface ReportData {
   llmCards: Array<{ model: string; label: string; avgScore: number; mentions: number; runs: number }>
   heatmap: Array<{ intent: string; cells: Record<string, number | null> }>
   // topics
-  topicRows: Array<{ topic: string; avgScore: number; nPrompts: number; present: number; topComp: string | null }>
+  topicRows: Array<{ topic: string; avgScore: number; nPrompts: number; present: number; topComp: string | null; myRank: number | null; myVis: number; top3: Array<{ name: string; vis: number; isMe: boolean }> }>
   // intents
   intentRows: Array<{ intent: string; avgScore: number; nPrompts: number; present: number; isRef: boolean }>
   intentGap: { intent: string; compName: string; gap: number } | null
   // prompts
-  bestPrompts: Array<{ text: string; score: number; position: number | null }>
-  gapPrompts: Array<{ text: string; citations: number; winner: string | null }>
+  bestPrompts: Array<{ text: string; score: number; position: number | null; topic: string | null }>
+  gapPrompts: Array<{ text: string; citations: number; winner: string | null; topic: string | null }>
+  llmTopSources: Array<{ model: string; domains: string[] }>
   zeroCount: number
   // narrative
   sentimentRows: SentRow[]
@@ -160,7 +161,36 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
         })
       }))
       const topCompId = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0]
-      return { topic, avgScore, nPrompts: ps.length, present, topComp: topCompId ? compName[topCompId] || null : null }
+      // Full ranking (brand + competitors) by mention rate in this topic's runs
+      let topicRuns = 0
+      const rankCounts: Record<string, number> = {}
+      ps.forEach(p => (byId.get(p.promptId)?.history || []).forEach(run => {
+        topicRuns++
+        const seen = new Set<string>()
+        ;(run.brandMentions || []).forEach(mn => {
+          if (mn.type !== 'brand' && mn.type !== 'competitor') return
+          const key = mn.type === 'brand' ? '__brand__' : (mn.competitorId || mn.entityName)
+          if (seen.has(key)) return
+          seen.add(key)
+          rankCounts[key] = (rankCounts[key] || 0) + 1
+        })
+      }))
+      const ranked = Object.entries(rankCounts)
+        .map(([key, c]) => ({
+          isMe: key === '__brand__',
+          name: key === '__brand__' ? 'MyForce' : (compName[key] || ''),
+          vis: topicRuns > 0 ? Math.round((c / topicRuns) * 100) : 0,
+        }))
+        .filter(r => r.isMe || r.name)
+        .sort((a, b) => b.vis - a.vis)
+      const myIdx = ranked.findIndex(r => r.isMe)
+      return {
+        topic, avgScore, nPrompts: ps.length, present,
+        topComp: topCompId ? compName[topCompId] || null : null,
+        myRank: myIdx >= 0 ? myIdx + 1 : null,
+        myVis: myIdx >= 0 ? ranked[myIdx].vis : 0,
+        top3: ranked.slice(0, 3),
+      }
     }).filter(t => t.nPrompts > 0).sort((a, b) => b.avgScore - a.avgScore)
 
     // Intent rows + biggest gap vs competitors (mention-rate based)
@@ -197,7 +227,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       return ranks.length ? Math.round((ranks.reduce((s, r) => s + r, 0) / ranks.length) * 10) / 10 : null
     }
     const bestPrompts = [...prompts].sort((a, b) => b.averageScore - a.averageScore).slice(0, 5)
-      .map(p => ({ text: p.promptText, score: Math.round(p.averageScore), position: posOf(p.promptId) }))
+      .map(p => ({ text: p.promptText, score: Math.round(p.averageScore), position: posOf(p.promptId), topic: taxonomyTopicAssignments[p.promptId] || null }))
     const zeros = prompts.filter(p => p.averageScore === 0)
     const zeroCount = zeros.length
     const gapPrompts = zeros.map(p => {
@@ -213,7 +243,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
         })
       })
       const winId = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0]
-      return { text: p.promptText, citations: domains.size, winner: winId ? compName[winId] || null : null }
+      return { text: p.promptText, citations: domains.size, winner: winId ? compName[winId] || null : null, topic: taxonomyTopicAssignments[p.promptId] || null }
     }).sort((a, b) => b.citations - a.citations).slice(0, 5)
 
     // Sentiment + attributes
@@ -266,6 +296,17 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       return { name: row.name, score: row.score, isMe, topSources }
     })
 
+    // Top 3 cited domains per LLM
+    const modelDomains: Record<string, Record<string, number>> = {}
+    details.forEach(d => (d.history || []).forEach(run => {
+      const md = modelDomains[run.aiModel] ?? (modelDomains[run.aiModel] = {})
+      run.sources.forEach(src => { md[src.domain] = (md[src.domain] || 0) + 1 })
+    }))
+    const llmTopSources = models.map(model => ({
+      model,
+      domains: Object.entries(modelDomains[model] || {}).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([dom]) => dom),
+    })).filter(r => r.domains.length > 0)
+
     // Owned / earned / competitor donut + concentration (from /sources)
     const hostList = Object.values(compHosts)
     let owned = 0, earned = 0, competitor = 0, totalCit = 0
@@ -303,6 +344,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       llmCards, heatmap,
       topicRows, intentRows, intentGap,
       bestPrompts, gapPrompts, zeroCount,
+      llmTopSources,
       sentimentRows, myPositive, topAttrs, improveAttrs,
       compSources,
       donut: { owned: pctc(owned), earned: pctc(earned), competitor: pctc(competitor) },
