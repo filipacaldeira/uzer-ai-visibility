@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid, Legend } from 'recharts'
 import { useReportData, type ReportData } from '../report/useReportData'
 import { autoHeadline } from '../report/headlines'
-import { llmDomain } from '../utils/format'
+import { llmDomain, brandColor } from '../utils/format'
 import { Favicon } from '../components/ui/Favicon'
 import factsFlags from '../data/myforce_facts_flags.json'
 
@@ -19,7 +21,8 @@ const fmtInt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!
 const fmtPos = (n: number) => `${n}º`
 
 const OVERRIDES_KEY = 'report-headline-overrides'
-const SCREEN_IDS = ['capa', 'sumario', 'score', 'sov', 'servicos', 'perguntas', 'motores', 'intencoes', 'narrativa', 'fontes']
+const SCREEN_IDS = ['capa', 'sumario', 'score', 'evolucao', 'sov', 'servicos', 'rankings', 'perguntas', 'motores', 'intencoes', 'narrativa', 'fontes', 'dominios']
+const TOTAL_SCREENS = SCREEN_IDS.length
 
 function readOverrides(): Record<string, string> {
   try { return JSON.parse(localStorage.getItem(OVERRIDES_KEY) || '{}') } catch { return {} }
@@ -123,7 +126,7 @@ function Footer({ n, source }: { n: number; source: string }) {
       fontSize: 11, color: T.muted,
     }}>
       <span>{source}</span>
-      <span>{n} / 10</span>
+      <span>{n} / {TOTAL_SCREENS}</span>
     </div>
   )
 }
@@ -203,11 +206,50 @@ function Donut({ owned, earned, competitor }: { owned: number; earned: number; c
   )
 }
 
+function SovDonut({ rows, brand }: { rows: Array<{ name: string; score: number; isMe: boolean }>; brand: string }) {
+  const total = rows.reduce((sum, r) => sum + r.score, 0)
+  const segs = rows.map(r => ({
+    name: r.name, isMe: r.isMe,
+    pct: total > 0 ? Math.round((r.score / total) * 100) : 0,
+    color: r.isMe ? '#EA3624' : brandColor(r.name),
+  }))
+  const R = 52, C = 2 * Math.PI * R
+  let off = 0
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 24 }}>
+      <svg viewBox="0 0 140 140" style={{ width: 170 }}>
+        {segs.map((sg, i) => {
+          const len = (sg.pct / 100) * C
+          const el = (
+            <circle key={i} cx={70} cy={70} r={R} fill="none" stroke={sg.color} strokeWidth={18}
+              strokeDasharray={`${len} ${C - len}`} strokeDashoffset={-off} transform="rotate(-90 70 70)"
+              strokeOpacity={sg.isMe ? 1 : 0.85} />
+          )
+          off += len
+          return el
+        })}
+        <text x={70} y={66} textAnchor="middle" fontSize={20} fontWeight={600} fill={T.ink}>{segs.find(sg => sg.isMe)?.pct}%</text>
+        <text x={70} y={82} textAnchor="middle" fontSize={9} fill={T.muted}>{brand}</text>
+      </svg>
+      <div style={{ fontSize: 11.5, color: T.body, display: 'grid', gap: 4 }}>
+        {segs.map(sg => (
+          <div key={sg.name} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ width: 9, height: 9, borderRadius: 3, background: sg.color, display: 'inline-block', border: sg.color === '#FFFFFF' ? `1px solid ${T.border}` : 'none' }} />
+            <span style={{ fontWeight: sg.isMe ? 700 : 400, color: sg.isMe ? T.ink : T.body }}>{sg.name}</span>
+            <strong style={{ color: T.ink }}>{sg.pct}%</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 /* ---------- the report ---------- */
 
 const SOURCE = 'Fonte: Peekaboo · análise de respostas de IA'
 
 export default function Report() {
+  const navigate = useNavigate()
   const [timeRange, setTimeRange] = useState('30d')
   const { data, loading, error } = useReportData(timeRange)
   const [active, setActive] = useState(0)
@@ -220,7 +262,7 @@ export default function Report() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement)?.isContentEditable) return
-      if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); goTo(Math.min(active + 1, 9)) }
+      if (e.key === 'ArrowDown' || e.key === 'PageDown') { e.preventDefault(); goTo(Math.min(active + 1, TOTAL_SCREENS - 1)) }
       if (e.key === 'ArrowUp' || e.key === 'PageUp') { e.preventDefault(); goTo(Math.max(active - 1, 0)) }
     }
     window.addEventListener('keydown', onKey)
@@ -267,7 +309,7 @@ export default function Report() {
       <style>{`
         .report-screen { min-height: 92vh; position: relative; display: flex; flex-direction: column; padding: 56px 64px 30px; box-sizing: border-box; }
         .report-screen h2[contenteditable]:hover { box-shadow: 0 2px 0 ${T.purple}55; }
-        .report-grid { display: grid; gap: 16px; }
+        .report-grid { display: grid; gap: 16px; } .report-grid > * { min-width: 0; }
         @media (max-width: 1120px) {
           .report-grid { grid-template-columns: 1fr !important; }
           .report-screen { padding: 40px 28px 24px; }
@@ -275,11 +317,25 @@ export default function Report() {
         .report-tablewrap { overflow-x: auto; }
         @media print {
           @page { size: A4 landscape; margin: 0; }
-          .report-noprint, .report-rail, .report-toolbar { display: none !important; }
-          .report-screen { min-height: 100vh; height: 100vh; page-break-after: always; overflow: hidden; }
+          * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+          .report-noprint, .report-rail, .report-toolbar, .report-close { display: none !important; }
+          .report-screen { min-height: auto; height: 210mm; max-height: 210mm; page-break-after: always; break-after: page; overflow: hidden; padding: 12mm 14mm 8mm; }
+          .report-screen:last-of-type { page-break-after: auto; }
           body { background: #fff; }
         }
       `}</style>
+
+      {/* fechar */}
+      <button
+        className="report-close"
+        onClick={() => navigate('/')}
+        title="Fechar report e voltar ao dashboard"
+        style={{
+          position: 'fixed', top: 16, right: 18, zIndex: 60, width: 34, height: 34, borderRadius: '50%',
+          background: 'rgba(11,19,38,0.85)', color: '#fff', border: '1px solid rgba(255,255,255,0.25)',
+          fontSize: 15, cursor: 'pointer', lineHeight: 1,
+        }}
+      >✕</button>
 
       {/* toolbar */}
       <div className="report-toolbar" style={{
@@ -383,18 +439,48 @@ export default function Report() {
         </Card>
       </Screen>
 
-      {/* 4 — SHARE OF VOICE */}
-      <Screen id="sov" n={4} eyebrow="Share of voice" data={d} source={SOURCE}>
-        <Card>
-          {d.sovRows.map(r => (
-            <HBar key={r.name} label={r.name} value={r.score} max={maxSov} isMe={r.isMe} right={`${r.score}/100`} />
-          ))}
-          <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>Média dos concorrentes: <strong style={{ color: T.ink }}>{d.avgCompScore}</strong> · score de visibilidade em IA (0–100)</div>
+      {/* 4 — EVOLUÇÃO */}
+      <Screen id="evolucao" n={4} eyebrow="Evolução" data={d} source={SOURCE}>
+        <Card style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>% de respostas que mencionam cada marca, por dia</div>
+          <div style={{ flex: 1, minHeight: 300 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={d.timeline.map(pt => ({ date: pt.date, ...pt.values }))} margin={{ top: 8, right: 14, left: -16, bottom: 0 }}>
+                <CartesianGrid stroke={T.border} vertical={false} />
+                <XAxis dataKey="date" tick={{ fontSize: 10, fill: T.muted }} interval="preserveStartEnd" minTickGap={26} />
+                <YAxis tick={{ fontSize: 10, fill: T.muted }} tickFormatter={v => `${v}%`} domain={[0, 'auto']} />
+                <RTooltip contentStyle={{ background: '#fff', border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} formatter={(v) => [`${v}%`]} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                {Object.keys(d.timeline[0]?.values || {}).map(name => (
+                  <Line key={name} type="monotone" dataKey={name} dot={false} isAnimationActive={false}
+                    stroke={name === d.brand ? T.brandRed : brandColor(name)}
+                    strokeWidth={name === d.brand ? 3 : 1.5}
+                    strokeOpacity={name === d.brand ? 1 : 0.75} />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
         </Card>
       </Screen>
 
+      {/* 5 — SHARE OF VOICE */}
+      <Screen id="sov" n={5} eyebrow="Share of voice" data={d} source={SOURCE}>
+        <div className="report-grid" style={{ gridTemplateColumns: '1.25fr 1fr' }}>
+          <Card>
+            {d.sovRows.map(r => (
+              <HBar key={r.name} label={r.name} value={r.score} max={maxSov} isMe={r.isMe} right={`${r.score}/100`} />
+            ))}
+            <div style={{ fontSize: 12, color: T.muted, marginTop: 4 }}>Média dos concorrentes: <strong style={{ color: T.ink }}>{d.avgCompScore}</strong> · score de visibilidade em IA (0–100)</div>
+          </Card>
+          <Card style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Share of voice</div>
+            <SovDonut rows={d.sovRows} brand={d.brand} />
+          </Card>
+        </div>
+      </Screen>
+
       {/* 5 — SERVIÇOS */}
-      <Screen id="servicos" n={5} eyebrow="Serviços" data={d} source={SOURCE}>
+      <Screen id="servicos" n={6} eyebrow="Serviços" data={d} source={SOURCE}>
         <div className="report-grid" style={{ gridTemplateColumns: '1.15fr 1fr' }}>
           <Card>
             <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Score da {d.brand} e posição competitiva por tópico</div>
@@ -416,7 +502,7 @@ export default function Report() {
                 </div>
                 <div style={{ marginLeft: 120, fontSize: 11, color: T.muted, marginTop: 3 }}>
                   presença em {t.present} de {t.nPrompts} perguntas
-                  {t.top3.length > 0 && <> · líder: <strong style={{ color: t.top3[0].isMe ? T.brandRed : T.ink }}>{t.top3[0].name}</strong> ({t.top3[0].vis}%)</>}
+                  {t.top5.length > 0 && <> · líder: <strong style={{ color: t.top5[0].isMe ? T.brandRed : T.ink }}>{t.top5[0].name}</strong> ({t.top5[0].vis}%)</>}
                 </div>
               </div>
             ))}
@@ -446,7 +532,7 @@ export default function Report() {
               {[...d.topicRows].sort((a, b) => b.avgScore - a.avgScore).map(t => (
                 <div key={t.topic} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: T.body, padding: '3px 0', flexWrap: 'wrap' }}>
                   <span style={{ width: 92, fontWeight: 600, color: T.ink }}>{t.topic}</span>
-                  {t.top3.map((b, i) => (
+                  {t.top5.slice(0, 3).map((b, i) => (
                     <span key={b.name} style={{ color: b.isMe ? T.brandRed : T.muted, fontWeight: b.isMe ? 700 : 400 }}>
                       {i + 1}. {b.name} {b.vis}%
                     </span>
@@ -458,8 +544,51 @@ export default function Report() {
         </div>
       </Screen>
 
-      {/* 6 — PERGUNTAS */}
-      <Screen id="perguntas" n={6} eyebrow="Perguntas | Prompts" data={d} source={SOURCE}>
+      {/* 7 — TOPIC RANKINGS */}
+      <Screen id="rankings" n={7} eyebrow="Topic Rankings" data={d} source={SOURCE}>
+        <Card>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr>
+              <th style={thStyle}>Tópico</th>
+              <th style={{ ...thStyle, width: 110 }}>Posição</th>
+              {[1, 2, 3, 4, 5].map(i => <th key={i} style={{ ...thStyle, textAlign: 'center' }}>{i}º</th>)}
+            </tr></thead>
+            <tbody>
+              {d.topicRows.map(t => {
+                const badge = t.myRank === 1
+                  ? { label: 'Líder', color: T.green }
+                  : t.myRank != null && t.myRank <= 3
+                  ? { label: 'Competitiva', color: '#A87413' }
+                  : { label: 'Atrás', color: T.red }
+                return (
+                  <tr key={t.topic}>
+                    <td style={{ ...tdStyle, fontWeight: 600, color: T.ink }}>{t.topic}</td>
+                    <td style={tdStyle}>
+                      <span style={{ fontSize: 10.5, fontWeight: 700, borderRadius: 999, padding: '3px 10px', background: `${badge.color}1c`, color: badge.color, whiteSpace: 'nowrap' }}>{badge.label}</span>
+                    </td>
+                    {[0, 1, 2, 3, 4].map(i => {
+                      const b = t.top5[i]
+                      if (!b) return <td key={i} style={{ ...tdStyle, textAlign: 'center', color: T.muted }}>—</td>
+                      return (
+                        <td key={i} style={{ ...tdStyle, textAlign: 'center' }}>
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                            <span style={{ fontSize: 12, fontWeight: b.isMe ? 700 : 500, color: b.isMe ? T.brandRed : T.ink }}>{b.name}</span>
+                            <span style={{ fontSize: 10.5, color: T.muted }}>{b.vis}%</span>
+                          </div>
+                        </td>
+                      )
+                    })}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+          <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>% = respostas do tópico que mencionam a marca · a {d.brand} aparece a encarnado</div>
+        </Card>
+      </Screen>
+
+      {/* 8 — PERGUNTAS */}
+      <Screen id="perguntas" n={8} eyebrow="Perguntas | Prompts" data={d} source={SOURCE}>
         <div className="report-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <Card>
             <div style={{ color: T.green, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10 }}>Onde a {d.brand} ganha</div>
@@ -500,7 +629,7 @@ export default function Report() {
       </Screen>
 
       {/* 7 — MOTORES */}
-      <Screen id="motores" n={7} eyebrow="Motores" data={d} source={SOURCE}>
+      <Screen id="motores" n={9} eyebrow="Motores" data={d} source={SOURCE}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 18 }}>
           {d.llmCards.map(c => {
             const dom = llmDomain(c.model)
@@ -542,7 +671,7 @@ export default function Report() {
       </Screen>
 
       {/* 8 — INTENÇÕES */}
-      <Screen id="intencoes" n={8} eyebrow="Intenções" data={d} source={SOURCE}>
+      <Screen id="intencoes" n={10} eyebrow="Intenções" data={d} source={SOURCE}>
         <Card>
           {[...d.intentRows].sort((a, b) => (a.isRef ? 1 : 0) - (b.isRef ? 1 : 0) || b.avgScore - a.avgScore).map(r => (
             <HBar
@@ -560,7 +689,7 @@ export default function Report() {
       </Screen>
 
       {/* 9 — NARRATIVA */}
-      <Screen id="narrativa" n={9} eyebrow="Narrativa" data={d} source={`${SOURCE} · sentimento por menção`}>
+      <Screen id="narrativa" n={11} eyebrow="Narrativa" data={d} source={`${SOURCE} · sentimento por menção`}>
         <div className="report-grid" style={{ gridTemplateColumns: '1.1fr 1fr' }}>
           <Card>
             <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>% de menções positivas por marca</div>
@@ -596,7 +725,7 @@ export default function Report() {
       </Screen>
 
       {/* 10 — CONCORRENTES E FONTES */}
-      <Screen id="fontes" n={10} eyebrow="Concorrentes e fontes" data={d} source={SOURCE}>
+      <Screen id="fontes" n={12} eyebrow="Concorrentes e fontes" data={d} source={SOURCE}>
         <div className="report-grid" style={{ gridTemplateColumns: '1.35fr 1fr' }}>
           <Card>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -626,25 +755,74 @@ export default function Report() {
               <Donut {...d.donut} />
             </Card>
             <Card>
-              <div style={{ fontSize: 12, color: T.muted, marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Top 3 fontes por motor</div>
-              {d.llmTopSources.map(r => (
-                <div key={r.model} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '4px 0', fontSize: 11.5, color: T.body, flexWrap: 'wrap' }}>
-                  <span style={{ width: 96, display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, color: T.ink, flexShrink: 0 }}>
-                    {llmDomain(r.model) && <Favicon domain={llmDomain(r.model)!} size={12} />}
-                    {r.model === 'sonar' ? 'Perplexity' : r.model === 'google-aio' ? 'AI Overviews' : r.model === 'google-ai-mode' ? 'AI Mode' : r.model === 'gpt-4o-mini' ? 'ChatGPT' : r.model === 'gemini-2.5-flash' ? 'Gemini' : r.model}
-                  </span>
-                  {r.domains.map(dom => (
-                    <span key={dom} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Favicon domain={dom} size={11} />{dom}</span>
-                  ))}
-                </div>
-              ))}
-            </Card>
-            <Card>
               <div style={{ fontSize: 12, color: T.muted, marginBottom: 6, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Risco de concentração</div>
               <div style={{ fontSize: 34, fontWeight: 300, color: d.concentration >= 60 ? T.red : d.concentration >= 40 ? '#A87413' : T.green }}>{d.concentration}%</div>
               <div style={{ fontSize: 12, color: T.muted }}>das citações vêm de apenas 5 fontes</div>
             </Card>
           </div>
+        </div>
+      </Screen>
+
+      {/* 13 — DOMÍNIOS */}
+      <Screen id="dominios" n={13} eyebrow="Domínios citados" data={d} source={SOURCE}>
+        <div className="report-grid" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
+          <Card>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Top 5 domínios mais citados</div>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr><th style={thStyle}>Domínio</th><th style={{ ...thStyle, textAlign: 'center', width: 76 }}>Citações</th><th style={{ ...thStyle, width: 96 }}>Tipo</th></tr></thead>
+              <tbody>
+                {d.domainRows.map(r => (
+                  <tr key={r.domain}>
+                    <td style={tdStyle}><span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Favicon domain={r.domain} size={13} />{r.domain}</span></td>
+                    <td style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, color: T.ink }}>{fmtInt(r.mentions)}</td>
+                    <td style={tdStyle}>
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, borderRadius: 999, padding: '2px 9px', textTransform: 'uppercase',
+                        background: r.kind === 'own' ? `${T.brandRed}1a` : r.kind === 'comp' ? `${T.amber}22` : `${T.cyan}1c`,
+                        color: r.kind === 'own' ? T.brandRed : r.kind === 'comp' ? '#A87413' : T.cyan,
+                      }}>{r.kind === 'own' ? 'Própria' : r.kind === 'comp' ? 'Concorrente' : 'Terceiros'}</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </Card>
+          <Card>
+            <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Citações de domínio por motor de IA</div>
+            <div className="report-tablewrap">
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead><tr>
+                <th style={thStyle}>Motor</th>
+                {d.domainMatrix.domains.map(dom => (
+                  <th key={dom} style={{ ...thStyle, textAlign: 'center', fontSize: 10 }}>
+                    <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}><Favicon domain={dom} size={12} />{dom.replace(/^www\./, '').slice(0, 16)}</span>
+                  </th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {d.domainMatrix.rows.map(row => {
+                  const maxC = Math.max(...Object.values(row.counts), 1)
+                  return (
+                    <tr key={row.model}>
+                      <td style={{ ...tdStyle, fontWeight: 600, color: T.ink, whiteSpace: 'nowrap' }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                          {llmDomain(row.model) && <Favicon domain={llmDomain(row.model)!} size={12} />}
+                          {row.model === 'sonar' ? 'Perplexity' : row.model === 'google-aio' ? 'AI Overviews' : row.model === 'google-ai-mode' ? 'AI Mode' : row.model === 'gpt-4o-mini' ? 'ChatGPT' : row.model === 'gemini-2.5-flash' ? 'Gemini' : row.model}
+                        </span>
+                      </td>
+                      {d.domainMatrix.domains.map(dom => {
+                        const v = row.counts[dom] || 0
+                        const alpha = v === 0 ? 0 : 0.12 + (v / maxC) * 0.5
+                        return <td key={dom} style={{ ...tdStyle, textAlign: 'center', fontWeight: 600, background: `rgba(6,182,212,${alpha.toFixed(2)})`, color: v === 0 ? T.muted : T.ink }}>{v || '—'}</td>
+                      })}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+            </div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>Nº de vezes que cada motor citou o domínio nas respostas analisadas · intensidade = peso na coluna do motor</div>
+          </Card>
         </div>
       </Screen>
     </div>

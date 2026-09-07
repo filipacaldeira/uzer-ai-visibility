@@ -69,6 +69,30 @@ export const headlines: Record<string, (d: ReportData) => string> = {
     return `A ${d.brand} não responde da mesma forma a todas as intenções de pesquisa`
   },
 
+  evolucao: d => {
+    const pts = d.timeline
+    if (pts.length >= 2) {
+      const first = pts[0].values[d.brand] ?? 0
+      const last = pts[pts.length - 1].values[d.brand] ?? 0
+      if (Math.abs(last - first) <= 3) return `A visibilidade da ${d.brand} mantém-se estável em torno de ${d.score}% — a corrida decide-se nos tópicos, não no tempo`
+      return last > first
+        ? `A visibilidade da ${d.brand} subiu de ${first}% para ${last}% ao longo do período`
+        : `A visibilidade da ${d.brand} desceu de ${first}% para ${last}% ao longo do período`
+    }
+    return `A visibilidade da ${d.brand} ao longo do período`
+  },
+
+  rankings: d => {
+    const lead = d.topicRows.filter(t => t.myRank === 1)
+    const lost = d.topicRows.filter(t => t.myRank != null && t.myRank > 1)
+    if (d.topicRows.length === 0) return `Quem manda em cada tópico da conversa`
+    const losers = [...new Set(lost.map(t => t.top5[0]?.name).filter(Boolean))]
+    const tail = lost.length > 0 && losers.length > 0
+      ? ` — ${listPt(losers)} ${losers.length === 1 ? 'manda' : 'mandam'} em ${listPt(lost.map(t => t.topic.toLowerCase()))}`
+      : ''
+    return `A ${d.brand} lidera em ${lead.length} dos ${d.topicRows.length} tópicos${tail}`
+  },
+
   perguntas: d => `É nestas perguntas que a ${d.brand} ganha — e nestas que desaparece`,
 
   narrativa: d => `Ser mencionada não basta: esta é a história que a IA conta sobre a ${d.brand}`,
@@ -80,6 +104,12 @@ export const headlines: Record<string, (d: ReportData) => string> = {
     if (comps.length >= 2)
       return `A ${comps[0]} e a ${comps[1]} disputam as mesmas fontes que sustentam a ${d.brand}`
     return `As fontes citadas pela IA decidem quem entra na resposta`
+  },
+
+  dominios: d => {
+    const top = d.domainRows[0]
+    if (!top) return `Os domínios mais citados pela IA decidem quem entra na resposta`
+    return `${top.domain} é a fonte que mais alimenta as respostas — ${top.mentions} citações no período`
   },
 }
 

@@ -31,7 +31,7 @@ export interface ReportData {
   llmCards: Array<{ model: string; label: string; avgScore: number; mentions: number; runs: number }>
   heatmap: Array<{ intent: string; cells: Record<string, number | null> }>
   // topics
-  topicRows: Array<{ topic: string; avgScore: number; nPrompts: number; present: number; topComp: string | null; myRank: number | null; myVis: number; top3: Array<{ name: string; vis: number; isMe: boolean }> }>
+  topicRows: Array<{ topic: string; avgScore: number; nPrompts: number; present: number; topComp: string | null; myRank: number | null; myVis: number; top5: Array<{ name: string; vis: number; isMe: boolean }> }>
   // intents
   intentRows: Array<{ intent: string; avgScore: number; nPrompts: number; present: number; isRef: boolean }>
   intentGap: { intent: string; compName: string; gap: number } | null
@@ -39,6 +39,9 @@ export interface ReportData {
   bestPrompts: Array<{ text: string; score: number; position: number | null; topic: string | null }>
   gapPrompts: Array<{ text: string; citations: number; winner: string | null; topic: string | null }>
   llmTopSources: Array<{ model: string; domains: string[] }>
+  timeline: Array<{ date: string; values: Record<string, number> }>
+  domainRows: Array<{ domain: string; mentions: number; kind: 'own' | 'comp' | 'earned' }>
+  domainMatrix: { domains: string[]; rows: Array<{ model: string; counts: Record<string, number> }> }
   zeroCount: number
   // narrative
   sentimentRows: SentRow[]
@@ -189,7 +192,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
         topComp: topCompId ? compName[topCompId] || null : null,
         myRank: myIdx >= 0 ? myIdx + 1 : null,
         myVis: myIdx >= 0 ? ranked[myIdx].vis : 0,
-        top3: ranked.slice(0, 3),
+        top5: ranked.slice(0, 5),
       }
     }).filter(t => t.nPrompts > 0).sort((a, b) => b.avgScore - a.avgScore)
 
@@ -296,6 +299,31 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       return { name: row.name, score: row.score, isMe, topSources }
     })
 
+    // Daily mention rate per brand (canonical dedup per run)
+    const perDate: Record<string, { runs: number; mentions: Record<string, number> }> = {}
+    details.forEach(d => (d.history || []).forEach(run => {
+      const day = (run.date || '').slice(0, 10)
+      if (!day) return
+      const pd = perDate[day] ?? (perDate[day] = { runs: 0, mentions: {} })
+      pd.runs++
+      const seen = new Set<string>()
+      ;(run.brandMentions || []).forEach(mn => {
+        if (mn.type !== 'brand' && mn.type !== 'competitor') return
+        const name = mn.type === 'brand' ? myName : compName[mn.competitorId || '']
+        if (!name || seen.has(name)) return
+        seen.add(name)
+        pd.mentions[name] = (pd.mentions[name] || 0) + 1
+      })
+    }))
+    const allBrandNames = [myName, ...comp.competitors.map(c => c.name)]
+    const timeline = Object.entries(perDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([day, pd]) => {
+        const values: Record<string, number> = {}
+        allBrandNames.forEach(n => { values[n] = pd.runs > 0 ? Math.round(((pd.mentions[n] || 0) / pd.runs) * 100) : 0 })
+        return { date: new Date(day).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }), values }
+      })
+
     // Top 3 cited domains per LLM
     const modelDomains: Record<string, Record<string, number>> = {}
     details.forEach(d => (d.history || []).forEach(run => {
@@ -320,6 +348,35 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       else earned += c
     })
     const pctc = (n: number) => totalCit > 0 ? Math.round((n / totalCit) * 100) : 0
+    const kindOf = (domRaw: string): 'own' | 'comp' | 'earned' => {
+      const dom = (domRaw || '').toLowerCase()
+      if (MY_HOSTS.some(h => dom.includes(h))) return 'own'
+      if (hostList.some(h => h && dom.includes(h.replace(/\.(pt|com|es|fr)$/, '')))) return 'comp'
+      return 'earned'
+    }
+    const domainRows = [...sources.sources]
+      .sort((a, b) => (b.mentions || 0) - (a.mentions || 0))
+      .slice(0, 5)
+      .map(sr => ({ domain: sr.domain, mentions: sr.mentions || 0, kind: kindOf(sr.domain) }))
+
+    // Domain × AI model citation matrix (top 6 domains by total citations in run history)
+    const domTotals: Record<string, number> = {}
+    const domByModel: Record<string, Record<string, number>> = {}
+    details.forEach(d => (d.history || []).forEach(run => {
+      run.sources.forEach(src => {
+        domTotals[src.domain] = (domTotals[src.domain] || 0) + 1
+        const dm = domByModel[run.aiModel] ?? (domByModel[run.aiModel] = {})
+        dm[src.domain] = (dm[src.domain] || 0) + 1
+      })
+    }))
+    const topDomains = Object.entries(domTotals).sort((a, b) => b[1] - a[1]).slice(0, 6).map(([dom]) => dom)
+    const domainMatrix = {
+      domains: topDomains,
+      rows: models.map(model => ({
+        model,
+        counts: Object.fromEntries(topDomains.map(dom => [dom, (domByModel[model] || {})[dom] || 0])),
+      })),
+    }
     const top5 = citList.sort((a, b) => b - a).slice(0, 5).reduce((s, c) => s + c, 0)
     const concentration = pctc(top5)
 
@@ -345,6 +402,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       topicRows, intentRows, intentGap,
       bestPrompts, gapPrompts, zeroCount,
       llmTopSources,
+      timeline, domainRows, domainMatrix,
       sentimentRows, myPositive, topAttrs, improveAttrs,
       compSources,
       donut: { owned: pctc(owned), earned: pctc(earned), competitor: pctc(competitor) },
