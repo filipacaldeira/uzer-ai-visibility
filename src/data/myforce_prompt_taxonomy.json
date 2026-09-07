@@ -1,0 +1,379 @@
+{
+  "brandId": "c727ae2e-28f3-40f9-8e79-bc83ee402cbb",
+  "brand": "MyForce",
+  "approvedBy": "Filipa Caldeira",
+  "approvedOn": "2026-09-07",
+  "topics": [
+    "Inspeção",
+    "Manutenção",
+    "Pneus",
+    "Frotas",
+    "Elétricos"
+  ],
+  "intents": [
+    "General",
+    "Commercial",
+    "Transactional",
+    "Informational"
+  ],
+  "rules": {
+    "topic": "Pneus inclui travões; Manutenção = revisão, óleo, bateria, AC, embraiagem, amortecedores, luzes de aviso; Frotas sempre que a pergunta é de empresa; Elétricos só híbridos/eléctricos; Inspeção quando a IPO é o assunto principal.",
+    "intent": "General = pergunta directa sobre a marca; Commercial = comparar/escolher/'melhor'/preços/rede vs local; Transactional = agir agora (marcar, hoje, urgente, 'onde vou'); Informational = como funciona/sinais/riscos sem escolha de oficina."
+  },
+  "assignments": [
+    {
+      "promptId": "572be497-fbee-4a66-b58c-e1f92ef29eef",
+      "topic": "Manutenção",
+      "intent": "General"
+    },
+    {
+      "promptId": "4b444182-65da-4843-be7e-305cbd7ec50a",
+      "topic": "Manutenção",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "8b2d9f6d-8c12-4fb5-86ad-382ba69b3687",
+      "topic": "Manutenção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "6ae25683-5d90-44be-a842-e0e004d4b6fe",
+      "topic": "Manutenção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "ea7f86b6-dc3b-40ff-9743-17631b890c53",
+      "topic": "Elétricos",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "99d17650-990d-43e9-9945-730faab403da",
+      "topic": "Manutenção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "d27ffc7c-8af9-4557-ac32-da7edda971d3",
+      "topic": "Manutenção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "ee90480d-fbdf-4603-a921-615f4162c784",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "35c3bd31-f9c3-4de7-81d3-19642f4f7ad2",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "d85c7ee2-0127-4dad-9147-650486590ac6",
+      "topic": "Inspeção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "6cba9f2b-782c-4bd2-90ab-9c9cfc157034",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "16855440-f5b1-44f9-b8aa-f9e8dc1fd905",
+      "topic": "Pneus",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "fd193bdf-7ceb-4e29-9a4b-232b1d622c6b",
+      "topic": "Manutenção",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "0577e3b9-90db-43d6-92b9-c7240761d4e1",
+      "topic": "Manutenção",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "25d1c52d-67b4-41d1-b681-b414cee6a9b5",
+      "topic": "Frotas",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "2d459325-548f-4174-829e-80b25f770a54",
+      "topic": "Manutenção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "6249cd93-c977-4ed6-bcad-0e1082dc59e7",
+      "topic": "Pneus",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "3d5b3023-15bd-4e51-b8a1-ba51cacd61d2",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "fa6e31e3-2938-4c78-a895-42c31aab637a",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "e918d650-8254-49b4-9f64-5fbbb33c76e3",
+      "topic": "Manutenção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "4daadba8-c494-442f-90e4-00e2c4fcd093",
+      "topic": "Elétricos",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "f33d034d-c085-4538-aac2-74f89318e2df",
+      "topic": "Inspeção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "5bceee86-5af3-4628-b4f3-d7a07a67a670",
+      "topic": "Manutenção",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "07e73bd3-1f72-4195-8fd5-f7547f6bdcf8",
+      "topic": "Manutenção",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "abd640a4-d2cd-4cfc-8e0a-a7cc6e67b0b7",
+      "topic": "Pneus",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "db6b483b-132c-4869-8a0e-6ec8f162192d",
+      "topic": "Pneus",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "b628fd0e-c00e-4a8b-89ad-9f909e976394",
+      "topic": "Frotas",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "4b83aed6-ea12-40a7-8bc7-ed48e6d048c9",
+      "topic": "Frotas",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "6c314ac2-15b7-455c-8121-586e879c887d",
+      "topic": "Manutenção",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "c36eda08-ff1a-4b69-a018-c126a8c9af5a",
+      "topic": "Pneus",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "b2643f90-da57-4c8b-9fbf-49eb5d5828e5",
+      "topic": "Frotas",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "2e3c8d37-416f-44b2-a3a5-57f69dd5099f",
+      "topic": "Pneus",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "25c0f46e-5d26-43ad-affd-d40890421bf2",
+      "topic": "Inspeção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "85c72fcc-b133-4802-b8a4-10e920c97db3",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "1fda901d-1cf0-4235-bc88-68a647b3ad1d",
+      "topic": "Frotas",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "c0e5d3c2-bce7-4911-888b-a78819850f2f",
+      "topic": "Manutenção",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "2b7425ab-a35e-4ddd-80c6-8b4e4290d4bb",
+      "topic": "Pneus",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "cb6b660b-c157-4614-86ca-ca8e7f37ce0a",
+      "topic": "Frotas",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "3af97b49-478b-48a5-af04-d038debf83c0",
+      "topic": "Inspeção",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "030da1d4-c825-4d76-aaaa-aac2b001d7fe",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "a162f180-dd6e-4e05-86e6-b8bf70e87f99",
+      "topic": "Frotas",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "ad4fa7e0-e603-4bd9-a9e6-4b78a8d92f2d",
+      "topic": "Frotas",
+      "intent": "Commercial"
+    },
+    {
+      "promptId": "46db23d0-a2e4-4bf7-a4db-eae7746082f0",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "3b2f5664-cb38-49b5-bb9c-b4942543c002",
+      "topic": "Manutenção",
+      "intent": "Informational"
+    },
+    {
+      "promptId": "7ec90934-8f1f-4500-b588-4fcf62406295",
+      "topic": "Inspeção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "29983fdb-a448-4f35-bf15-ea588b35c071",
+      "topic": "Manutenção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "38a69682-f46a-4f1d-a9d3-035b0b891972",
+      "topic": "Frotas",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "b72a7042-8878-4c48-bace-316d4a377e74",
+      "topic": "Pneus",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "8dad6378-52ae-4373-9aff-c428c6bb48bf",
+      "topic": "Manutenção",
+      "intent": "Transactional"
+    },
+    {
+      "promptId": "b4c492c3-547e-45e1-86bf-7d800a891159",
+      "topic": "Pneus",
+      "intent": "Informational"
+    }
+  ],
+  "promptTopicAssignments": {
+    "572be497-fbee-4a66-b58c-e1f92ef29eef": "Manutenção",
+    "4b444182-65da-4843-be7e-305cbd7ec50a": "Manutenção",
+    "8b2d9f6d-8c12-4fb5-86ad-382ba69b3687": "Manutenção",
+    "6ae25683-5d90-44be-a842-e0e004d4b6fe": "Manutenção",
+    "ea7f86b6-dc3b-40ff-9743-17631b890c53": "Elétricos",
+    "99d17650-990d-43e9-9945-730faab403da": "Manutenção",
+    "d27ffc7c-8af9-4557-ac32-da7edda971d3": "Manutenção",
+    "ee90480d-fbdf-4603-a921-615f4162c784": "Manutenção",
+    "35c3bd31-f9c3-4de7-81d3-19642f4f7ad2": "Manutenção",
+    "d85c7ee2-0127-4dad-9147-650486590ac6": "Inspeção",
+    "6cba9f2b-782c-4bd2-90ab-9c9cfc157034": "Manutenção",
+    "16855440-f5b1-44f9-b8aa-f9e8dc1fd905": "Pneus",
+    "fd193bdf-7ceb-4e29-9a4b-232b1d622c6b": "Manutenção",
+    "0577e3b9-90db-43d6-92b9-c7240761d4e1": "Manutenção",
+    "25d1c52d-67b4-41d1-b681-b414cee6a9b5": "Frotas",
+    "2d459325-548f-4174-829e-80b25f770a54": "Manutenção",
+    "6249cd93-c977-4ed6-bcad-0e1082dc59e7": "Pneus",
+    "3d5b3023-15bd-4e51-b8a1-ba51cacd61d2": "Manutenção",
+    "fa6e31e3-2938-4c78-a895-42c31aab637a": "Manutenção",
+    "e918d650-8254-49b4-9f64-5fbbb33c76e3": "Manutenção",
+    "4daadba8-c494-442f-90e4-00e2c4fcd093": "Elétricos",
+    "f33d034d-c085-4538-aac2-74f89318e2df": "Inspeção",
+    "5bceee86-5af3-4628-b4f3-d7a07a67a670": "Manutenção",
+    "07e73bd3-1f72-4195-8fd5-f7547f6bdcf8": "Manutenção",
+    "abd640a4-d2cd-4cfc-8e0a-a7cc6e67b0b7": "Pneus",
+    "db6b483b-132c-4869-8a0e-6ec8f162192d": "Pneus",
+    "b628fd0e-c00e-4a8b-89ad-9f909e976394": "Frotas",
+    "4b83aed6-ea12-40a7-8bc7-ed48e6d048c9": "Frotas",
+    "6c314ac2-15b7-455c-8121-586e879c887d": "Manutenção",
+    "c36eda08-ff1a-4b69-a018-c126a8c9af5a": "Pneus",
+    "b2643f90-da57-4c8b-9fbf-49eb5d5828e5": "Frotas",
+    "2e3c8d37-416f-44b2-a3a5-57f69dd5099f": "Pneus",
+    "25c0f46e-5d26-43ad-affd-d40890421bf2": "Inspeção",
+    "85c72fcc-b133-4802-b8a4-10e920c97db3": "Manutenção",
+    "1fda901d-1cf0-4235-bc88-68a647b3ad1d": "Frotas",
+    "c0e5d3c2-bce7-4911-888b-a78819850f2f": "Manutenção",
+    "2b7425ab-a35e-4ddd-80c6-8b4e4290d4bb": "Pneus",
+    "cb6b660b-c157-4614-86ca-ca8e7f37ce0a": "Frotas",
+    "3af97b49-478b-48a5-af04-d038debf83c0": "Inspeção",
+    "030da1d4-c825-4d76-aaaa-aac2b001d7fe": "Manutenção",
+    "a162f180-dd6e-4e05-86e6-b8bf70e87f99": "Frotas",
+    "ad4fa7e0-e603-4bd9-a9e6-4b78a8d92f2d": "Frotas",
+    "46db23d0-a2e4-4bf7-a4db-eae7746082f0": "Manutenção",
+    "3b2f5664-cb38-49b5-bb9c-b4942543c002": "Manutenção",
+    "7ec90934-8f1f-4500-b588-4fcf62406295": "Inspeção",
+    "29983fdb-a448-4f35-bf15-ea588b35c071": "Manutenção",
+    "38a69682-f46a-4f1d-a9d3-035b0b891972": "Frotas",
+    "b72a7042-8878-4c48-bace-316d4a377e74": "Pneus",
+    "8dad6378-52ae-4373-9aff-c428c6bb48bf": "Manutenção",
+    "b4c492c3-547e-45e1-86bf-7d800a891159": "Pneus"
+  },
+  "promptIntentOverrides": {
+    "572be497-fbee-4a66-b58c-e1f92ef29eef": "General",
+    "4b444182-65da-4843-be7e-305cbd7ec50a": "Commercial",
+    "8b2d9f6d-8c12-4fb5-86ad-382ba69b3687": "Transactional",
+    "6ae25683-5d90-44be-a842-e0e004d4b6fe": "Transactional",
+    "ea7f86b6-dc3b-40ff-9743-17631b890c53": "Commercial",
+    "99d17650-990d-43e9-9945-730faab403da": "Transactional",
+    "d27ffc7c-8af9-4557-ac32-da7edda971d3": "Transactional",
+    "ee90480d-fbdf-4603-a921-615f4162c784": "Informational",
+    "35c3bd31-f9c3-4de7-81d3-19642f4f7ad2": "Informational",
+    "d85c7ee2-0127-4dad-9147-650486590ac6": "Transactional",
+    "6cba9f2b-782c-4bd2-90ab-9c9cfc157034": "Informational",
+    "16855440-f5b1-44f9-b8aa-f9e8dc1fd905": "Transactional",
+    "fd193bdf-7ceb-4e29-9a4b-232b1d622c6b": "Commercial",
+    "0577e3b9-90db-43d6-92b9-c7240761d4e1": "Commercial",
+    "25d1c52d-67b4-41d1-b681-b414cee6a9b5": "Commercial",
+    "2d459325-548f-4174-829e-80b25f770a54": "Transactional",
+    "6249cd93-c977-4ed6-bcad-0e1082dc59e7": "Commercial",
+    "3d5b3023-15bd-4e51-b8a1-ba51cacd61d2": "Informational",
+    "fa6e31e3-2938-4c78-a895-42c31aab637a": "Informational",
+    "e918d650-8254-49b4-9f64-5fbbb33c76e3": "Transactional",
+    "4daadba8-c494-442f-90e4-00e2c4fcd093": "Commercial",
+    "f33d034d-c085-4538-aac2-74f89318e2df": "Transactional",
+    "5bceee86-5af3-4628-b4f3-d7a07a67a670": "Commercial",
+    "07e73bd3-1f72-4195-8fd5-f7547f6bdcf8": "Commercial",
+    "abd640a4-d2cd-4cfc-8e0a-a7cc6e67b0b7": "Commercial",
+    "db6b483b-132c-4869-8a0e-6ec8f162192d": "Commercial",
+    "b628fd0e-c00e-4a8b-89ad-9f909e976394": "Commercial",
+    "4b83aed6-ea12-40a7-8bc7-ed48e6d048c9": "Transactional",
+    "6c314ac2-15b7-455c-8121-586e879c887d": "Commercial",
+    "c36eda08-ff1a-4b69-a018-c126a8c9af5a": "Informational",
+    "b2643f90-da57-4c8b-9fbf-49eb5d5828e5": "Informational",
+    "2e3c8d37-416f-44b2-a3a5-57f69dd5099f": "Informational",
+    "25c0f46e-5d26-43ad-affd-d40890421bf2": "Informational",
+    "85c72fcc-b133-4802-b8a4-10e920c97db3": "Informational",
+    "1fda901d-1cf0-4235-bc88-68a647b3ad1d": "Commercial",
+    "c0e5d3c2-bce7-4911-888b-a78819850f2f": "Commercial",
+    "2b7425ab-a35e-4ddd-80c6-8b4e4290d4bb": "Commercial",
+    "cb6b660b-c157-4614-86ca-ca8e7f37ce0a": "Commercial",
+    "3af97b49-478b-48a5-af04-d038debf83c0": "Commercial",
+    "030da1d4-c825-4d76-aaaa-aac2b001d7fe": "Informational",
+    "a162f180-dd6e-4e05-86e6-b8bf70e87f99": "Commercial",
+    "ad4fa7e0-e603-4bd9-a9e6-4b78a8d92f2d": "Commercial",
+    "46db23d0-a2e4-4bf7-a4db-eae7746082f0": "Informational",
+    "3b2f5664-cb38-49b5-bb9c-b4942543c002": "Informational",
+    "7ec90934-8f1f-4500-b588-4fcf62406295": "Transactional",
+    "29983fdb-a448-4f35-bf15-ea588b35c071": "Transactional",
+    "38a69682-f46a-4f1d-a9d3-035b0b891972": "Transactional",
+    "b72a7042-8878-4c48-bace-316d4a377e74": "Transactional",
+    "8dad6378-52ae-4373-9aff-c428c6bb48bf": "Transactional",
+    "b4c492c3-547e-45e1-86bf-7d800a891159": "Informational"
+  }
+}

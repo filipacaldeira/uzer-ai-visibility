@@ -10,12 +10,14 @@ import Trends from './pages/Trends'
 import Recommendations from './pages/Recommendations'
 import AIX from './pages/AIX'
 import Sentiment from './pages/Sentiment'
+import Report from './pages/Report'
 
 export default function App() {
   return (
     <ThemeProvider>
     <BrowserRouter>
       <Routes>
+        <Route path="/report" element={<Report />} />
         <Route element={<Layout />}>
           <Route path="/" element={<Overview />} />
           <Route path="/aix" element={<AIX />} />

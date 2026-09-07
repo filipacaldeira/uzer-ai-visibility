@@ -14,9 +14,11 @@ import { fetchAllPromptDetails } from '../hooks/useBrandVisibilityStats'
 const BRAND_ID = 'c727ae2e-28f3-40f9-8e79-bc83ee402cbb'
 const ALL_MODELS = ['gpt-4o-mini', 'gemini-2.5-flash', 'google-ai-mode', 'google-aio']
 
+import { TAXONOMY_TOPICS, taxonomyTopicAssignments } from '../data/taxonomy'
+
 const TOPICS_KEY = 'prompt-topics-list'
 const ASSIGN_KEY = 'prompt-topic-assignments'
-const DEFAULT_TOPICS = ['Inspeção', 'Manutenção', 'Pneus', 'Frotas', 'Elétricos']
+
 
 type SortKey = 'prompt' | 'visibility' | 'sentiment' | 'position' | 'mentions' | 'citations' | 'runs' | 'topic'
 
@@ -90,10 +92,11 @@ const SENTIMENT_STYLE: Record<string, { label: string; color: string; bg: string
 export default function ByPrompt() {
   const [timeRange, setTimeRange] = useState('30d')
   const [topics, setTopics] = useState<string[]>(() => {
-    try { return JSON.parse(localStorage.getItem(TOPICS_KEY) || '') || DEFAULT_TOPICS } catch { return DEFAULT_TOPICS }
+    try { const ls = JSON.parse(localStorage.getItem(TOPICS_KEY) || 'null'); return Array.isArray(ls) && ls.length > 0 ? ls : TAXONOMY_TOPICS } catch { return TAXONOMY_TOPICS }
   })
   const [assignments, setAssignments] = useState<Record<string, string>>(() => {
-    try { return JSON.parse(localStorage.getItem(ASSIGN_KEY) || '{}') } catch { return {} }
+    // Taxonomy from the repo is the baseline; localStorage keeps local edits
+    try { return { ...taxonomyTopicAssignments, ...JSON.parse(localStorage.getItem(ASSIGN_KEY) || '{}') } } catch { return { ...taxonomyTopicAssignments } }
   })
   const [newTopic, setNewTopic] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('visibility')

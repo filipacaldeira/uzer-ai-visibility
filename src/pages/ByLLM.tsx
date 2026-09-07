@@ -10,6 +10,7 @@ import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { llmLabel, llmColor, llmDomain, formatPct, scoreTrend, MY_BRAND_COLOR, brandColor } from '../utils/format'
 import { Favicon } from '../components/ui/Favicon'
 import { InfoTip } from '../components/ui/InfoTip'
+import { getPromptIntent, TAXONOMY_INTENTS } from '../data/taxonomy'
 
 const BRAND_ID = 'c727ae2e-28f3-40f9-8e79-bc83ee402cbb'
 
@@ -21,6 +22,7 @@ export default function ByLLM() {
   const { data: snap, loading, error, refetch } = useApi(
     () => api.snapshot(BRAND_ID, timeRange), [timeRange]
   )
+  const { data: promptList } = useApi(() => api.prompts(BRAND_ID, timeRange), [timeRange])
   const { data: vis } = useApi(
     () => api.visibility(BRAND_ID, timeRange), [timeRange]
   )
@@ -49,16 +51,22 @@ export default function ByLLM() {
 
   const heatmapData = useMemo(() => {
     if (!snap) return []
-    const cats = [...new Set(snap.prompts.map(p => p.category || 'General'))]
+    // Snapshot prompts have no promptId — map text → id via the prompts list
+    const textToId: Record<string, string> = {}
+    ;(promptList || []).forEach(p => { textToId[p.promptText] = p.promptId })
+    const intentOf = (p: { promptText: string; category: string | null }) =>
+      getPromptIntent({ promptId: textToId[p.promptText], category: p.category })
+    const cats = [...TAXONOMY_INTENTS.filter(i => snap.prompts.some(p => intentOf(p) === i)),
+      ...new Set(snap.prompts.map(intentOf).filter(i => !TAXONOMY_INTENTS.includes(i)))]
     return cats.map(cat => {
       const row: Record<string, unknown> = { category: cat }
       ALL_MODELS.forEach(m => {
-        const prompts = snap.prompts.filter(p => (p.category || 'General') === cat && p.aiModels.includes(m))
+        const prompts = snap.prompts.filter(p => intentOf(p) === cat && p.aiModels.includes(m))
         row[m] = prompts.length > 0 ? Math.round(prompts.reduce((s, p) => s + p.averageScore, 0) / prompts.length) : 0
       })
       return row
     })
-  }, [snap])
+  }, [snap, promptList])
 
   const compData = useMemo(() => {
     if (!snap) return []
@@ -144,14 +152,14 @@ export default function ByLLM() {
         {/* Heatmap */}
         <div className="card">
           <p className="section-title inline-flex items-center gap-1.5">
-            LLM × Category Heatmap
-            <InfoTip text="Average visibility score per prompt category on each LLM. Colour tiers: lime ≥ 85 (very high), yellow ≥ 70, orange ≥ 50, dark orange ≥ 30, red-brown &gt; 0." />
+            LLM × Intent Heatmap
+            <InfoTip text="Average visibility score per search intent on each LLM (user-curated taxonomy). Colour tiers: lime ≥ 85 (very high), yellow ≥ 70, orange ≥ 50, dark orange ≥ 30, red-brown &gt; 0." />
           </p>
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
               <thead>
                 <tr>
-                  <th className="text-left py-1.5 px-2 text-brand-muted font-medium">Category</th>
+                  <th className="text-left py-1.5 px-2 text-brand-muted font-medium">Intent</th>
                   {ALL_MODELS.map(m => (
                     <th key={m} className="py-1.5 px-2 text-brand-muted font-medium text-center">
                       <div className="flex flex-col items-center gap-1">

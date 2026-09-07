@@ -11,6 +11,7 @@ import { ErrorState, PageSkeleton } from '../components/ui/LoadingState'
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react'
 import { MY_BRAND_COLOR } from '../utils/format'
 import { InfoTip } from '../components/ui/InfoTip'
+import { getPromptIntent } from '../data/taxonomy'
 
 const BRAND_ID = 'c727ae2e-28f3-40f9-8e79-bc83ee402cbb'
 
@@ -64,7 +65,7 @@ export default function Trends() {
     if (!prompts) return []
     const catMap: Record<string, { score: number; count: number; trend: string }> = {}
     prompts.forEach(p => {
-      const cat = p.category || 'General'
+      const cat = getPromptIntent(p)
       if (!catMap[cat]) catMap[cat] = { score: 0, count: 0, trend: 'stable' }
       catMap[cat].score += p.averageScore
       catMap[cat].count++
@@ -75,7 +76,7 @@ export default function Trends() {
       name,
       avgScore: Math.round(v.score / v.count),
       trend: v.trend,
-      change: v.trend === 'up' ? '+' + Math.round(Math.random() * 8 + 2) : v.trend === 'down' ? '-' + Math.round(Math.random() * 5 + 1) : '0',
+      change: v.trend === 'up' ? '↑' : v.trend === 'down' ? '↓' : '—',
     })).sort((a, b) => b.avgScore - a.avgScore)
   }, [prompts])
 
@@ -182,9 +183,9 @@ export default function Trends() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-brand-border">
-                <th className="th">Category</th>
+                <th className="th">Intent</th>
                 <th className="th">Avg Score</th>
-                <th className="th">3mo Change</th>
+                <th className="th">Direction</th>
                 <th className="th">Trend</th>
               </tr>
             </thead>
@@ -196,7 +197,7 @@ export default function Trends() {
                   <tr key={cat.name} className="table-row">
                     <td className="td">{cat.name}</td>
                     <td className="td font-medium">{cat.avgScore}</td>
-                    <td className={`td font-medium ${tColor}`}>{cat.change}pts</td>
+                    <td className={`td font-medium ${tColor}`}>{cat.change}</td>
                     <td className="td">
                       <TIcon size={14} className={tColor} />
                     </td>

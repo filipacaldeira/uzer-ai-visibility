@@ -109,6 +109,17 @@ export function Sidebar() {
         ))}
       </nav>
 
+      {/* Report button */}
+      <div className="px-3 pb-1">
+        <button
+          onClick={() => navigate('/report')}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold transition-transform hover:scale-[1.02]"
+          style={{ backgroundColor: '#DFFF11', color: '#0B1326' }}
+        >
+          Gerar Report
+        </button>
+      </div>
+
       {/* Footer */}
       <div className="px-4 py-3 border-t border-white/10 space-y-2">
         <div className="flex items-center gap-1.5">
