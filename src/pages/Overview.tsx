@@ -348,7 +348,7 @@ export default function Overview() {
           <div className="flex items-center justify-between mb-4">
             <p className="section-title mb-0 inline-flex items-center gap-1.5">
               Visibility Over Time — <span className="text-brand-text">All LLMs</span>
-              <InfoTip text="Daily visibility per brand: % of that day's analysed AI answers mentioning each brand, computed from the real run history of every tracked prompt." />
+              <InfoTip text="Daily Peekaboo visibility score per brand (position-weighted, 0-100): the mean score of that day's analysed AI answers, where answers not mentioning the brand count as 0. Computed from the per-prompt run history, which the API caps at the 100 most recent runs per prompt." />
             </p>
             <button onClick={() => navigate('/trends')} className="text-xs text-brand-primary flex items-center gap-1 hover:underline">
               Details <ArrowRight size={12} />

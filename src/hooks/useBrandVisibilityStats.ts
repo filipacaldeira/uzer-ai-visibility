@@ -111,8 +111,8 @@ export function useBrandVisibilityStats(brandId: string, timeRange: string, enab
       const runsByModel: Record<string, number> = {}
       const agg: Agg = {}
       const aggByModel: Record<string, Agg> = {}
-      // Per-day: total runs + mentioned-run count per canonical brand key
-      const perDate: Record<string, { runs: number; mentions: Record<string, number> }> = {}
+      // Per-day: total runs + mentioned-run count + score sum per canonical brand key
+      const perDate: Record<string, { runs: number; mentions: Record<string, number>; scoreSum: Record<string, number> }> = {}
 
       const mergeInto = (target: Agg, key: string, v: { isMe: boolean; bestRank: number | null; names: string[]; sents: string[] }) => {
         const a = target[key] ?? (target[key] = { isMe: v.isMe, mentions: 0, ranks: [], pos: 0, neu: 0, neg: 0, nameVotes: {} })
@@ -133,15 +133,20 @@ export function useBrandVisibilityStats(brandId: string, timeRange: string, enab
           runsByModel[model] = (runsByModel[model] || 0) + 1
           if (!aggByModel[model]) aggByModel[model] = {}
           const day = (run.date || '').slice(0, 10)
-          const pd = day ? (perDate[day] ?? (perDate[day] = { runs: 0, mentions: {} })) : null
-          if (pd) pd.runs++
+          const pd = day ? (perDate[day] ?? (perDate[day] = { runs: 0, mentions: {}, scoreSum: {} })) : null
+          if (pd) {
+            pd.runs++
+            // Brand: the run-level score (0-100; 0 when the brand is absent)
+            pd.scoreSum['__brand__'] = (pd.scoreSum['__brand__'] || 0) + (run.score || 0)
+          }
           // Dedupe canonical brands within this run: best (lowest) rank wins
-          const inRun = new Map<string, { isMe: boolean; bestRank: number | null; names: string[]; sents: string[] }>()
+          const inRun = new Map<string, { isMe: boolean; bestRank: number | null; bestScore: number; names: string[]; sents: string[] }>()
           ;(run.brandMentions || []).forEach(m => {
             const isMe = m.type === 'brand'
             if (!isMe && m.type !== 'competitor') return
             const key = isMe ? '__brand__' : (m.competitorId || m.entityName)
-            const cur = inRun.get(key) ?? { isMe, bestRank: null, names: [], sents: [] }
+            const cur = inRun.get(key) ?? { isMe, bestRank: null, bestScore: 0, names: [], sents: [] }
+            if (typeof m.score === 'number' && m.score > cur.bestScore) cur.bestScore = m.score
             if (typeof m.rank === 'number' && m.rank > 0 && (cur.bestRank === null || m.rank < cur.bestRank)) cur.bestRank = m.rank
             cur.names.push(m.entityName)
             if (m.sentiment) cur.sents.push(m.sentiment.toLowerCase())
@@ -150,7 +155,11 @@ export function useBrandVisibilityStats(brandId: string, timeRange: string, enab
           inRun.forEach((v, key) => {
             mergeInto(agg, key, v)
             mergeInto(aggByModel[model], key, v)
-            if (pd) pd.mentions[key] = (pd.mentions[key] || 0) + 1
+            if (pd) {
+              pd.mentions[key] = (pd.mentions[key] || 0) + 1
+              // Competitors: best score among this entity's mentions in the run
+              if (!v.isMe) pd.scoreSum[key] = (pd.scoreSum[key] || 0) + v.bestScore
+            }
           })
         })
       })
@@ -176,7 +185,9 @@ export function useBrandVisibilityStats(brandId: string, timeRange: string, enab
         .map(([date, pd]) => {
           const values: Record<string, number> = {}
           Object.entries(keyName).forEach(([key, name]) => {
-            values[name] = pd.runs > 0 ? Math.round(((pd.mentions[key] || 0) / pd.runs) * 100) : 0
+            // Daily Peekaboo-style visibility score: mean run score over ALL of
+            // the day's runs (absences count as 0), not the mention rate
+            values[name] = pd.runs > 0 ? Math.round((pd.scoreSum[key] || 0) / pd.runs) : 0
           })
           return { date, values }
         })
