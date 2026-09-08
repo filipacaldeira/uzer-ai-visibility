@@ -31,7 +31,7 @@ export interface ReportData {
   llmCards: Array<{ model: string; label: string; avgScore: number; mentions: number; runs: number }>
   heatmap: Array<{ intent: string; cells: Record<string, number | null> }>
   // topics
-  topicRows: Array<{ topic: string; avgScore: number; nPrompts: number; present: number; topComp: string | null; myRank: number | null; myVis: number; top5: Array<{ name: string; vis: number; isMe: boolean }> }>
+  topicRows: Array<{ topic: string; avgScore: number; nPrompts: number; present: number; topComp: string | null; myRank: number | null; myVis: number; ranked: Array<{ name: string; vis: number; isMe: boolean }> }>
   // intents
   intentRows: Array<{ intent: string; avgScore: number; nPrompts: number; present: number; isRef: boolean }>
   intentGap: { intent: string; compName: string; gap: number } | null
@@ -194,7 +194,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
         topComp: topCompId ? compName[topCompId] || null : null,
         myRank: myIdx >= 0 ? myIdx + 1 : null,
         myVis: myIdx >= 0 ? ranked[myIdx].vis : 0,
-        top5: ranked.slice(0, 5),
+        ranked,
       }
     }).filter(t => t.nPrompts > 0).sort((a, b) => b.avgScore - a.avgScore)
 

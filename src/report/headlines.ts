@@ -86,7 +86,7 @@ export const headlines: Record<string, (d: ReportData) => string> = {
     const lead = d.topicRows.filter(t => t.myRank === 1)
     const lost = d.topicRows.filter(t => t.myRank != null && t.myRank > 1)
     if (d.topicRows.length === 0) return `Quem manda em cada tópico da conversa`
-    const losers = [...new Set(lost.map(t => t.top5[0]?.name).filter(Boolean))]
+    const losers = [...new Set(lost.map(t => t.ranked[0]?.name).filter(Boolean))]
     const tail = lost.length > 0 && losers.length > 0
       ? ` — ${listPt(losers)} ${losers.length === 1 ? 'manda' : 'mandam'} em ${listPt(lost.map(t => t.topic.toLowerCase()))}`
       : ''

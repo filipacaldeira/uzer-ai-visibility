@@ -422,24 +422,38 @@ export default function Report() {
             </Card>
           ))}
         </div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métricas: score de visibilidade (0–100, pondera presença e destaque da marca nas respostas de IA) · sentimento = % de menções positivas · fontes próprias = citações de domínios da marca.</div>
       </Screen>
 
       {/* 3 — SCORE */}
       <Screen id="score" n={3} eyebrow="Visibility Score" data={d} source={`${SOURCE} · ${fmtInt(d.totalRuns)} respostas`}>
-        <Card style={{ display: 'flex', alignItems: 'center', gap: 48, padding: '34px 44px' }}>
-          <div>
-            <div style={{ fontSize: 92, fontWeight: 100, color: T.ink, lineHeight: 1 }}>{d.score}<span style={{ fontSize: 30, color: T.muted }}>/100</span></div>
-            <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6 }}>score de visibilidade em IA</div>
-          </div>
-          <Gauge score={d.score} />
-          <div style={{ display: 'grid', gap: 14 }}>
-            {d.avgPosition != null && (
-              <div><div style={{ fontSize: 26, fontWeight: 300, color: T.ink }}>{fmtPos(d.avgPosition)}</div><div style={{ fontSize: 12, color: T.muted }}>posição média quando citada</div></div>
-            )}
-            <div><div style={{ fontSize: 26, fontWeight: 300, color: T.ink }}>{fmtInt(d.totalRuns)}</div><div style={{ fontSize: 12, color: T.muted }}>respostas analisadas</div></div>
-            <div style={{ fontSize: 11.5, color: T.muted }}>Tendência do período: {d.trend === 'up' ? 'a subir' : d.trend === 'down' ? 'a descer' : 'estável'}</div>
-          </div>
-        </Card>
+        <div className="report-grid" style={{ gridTemplateColumns: '1fr 1.05fr' }}>
+          <Card style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 22, padding: '28px 34px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 30 }}>
+              <div>
+                <div style={{ fontSize: 76, fontWeight: 100, color: T.ink, lineHeight: 1 }}>{d.score}<span style={{ fontSize: 26, color: T.muted }}>/100</span></div>
+                <div style={{ fontSize: 12.5, color: T.muted, marginTop: 6 }}>score de visibilidade em IA</div>
+              </div>
+              <Gauge score={d.score} />
+            </div>
+            <div style={{ display: 'flex', gap: 34, flexWrap: 'wrap' }}>
+              {d.avgPosition != null && (
+                <div><div style={{ fontSize: 24, fontWeight: 300, color: T.ink }}>{fmtPos(d.avgPosition)}</div><div style={{ fontSize: 12, color: T.muted }}>posição média quando citada</div></div>
+              )}
+              <div><div style={{ fontSize: 24, fontWeight: 300, color: T.ink }}>{fmtInt(d.totalRuns)}</div><div style={{ fontSize: 12, color: T.muted }}>respostas analisadas</div></div>
+              <div style={{ alignSelf: 'end', fontSize: 11.5, color: T.muted, paddingBottom: 2 }}>Tendência: {d.trend === 'up' ? 'a subir' : d.trend === 'down' ? 'a descer' : 'estável'}</div>
+            </div>
+          </Card>
+          <Card style={{ display: 'flex', flexDirection: 'column', padding: '16px 18px' }}>
+            <img
+              src="/report/peekaboo_visibility.png"
+              alt="Visibilidade por marca ao longo do tempo (Peekaboo)"
+              style={{ width: '100%', maxHeight: 380, objectFit: 'contain', borderRadius: 8 }}
+            />
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 8 }}>% de respostas de IA que mencionam cada marca, 8 Jun – 7 Set · captura da plataforma Peekaboo (histórico completo de 90 dias)</div>
+          </Card>
+        </div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métrica: score de visibilidade Peekaboo (0–100) — média do score de todas as respostas de IA do período; cada resposta pontua pela presença e destaque da marca (0 quando ausente). Posição média = ordem em que a marca surge quando é mencionada.</div>
       </Screen>
 
       {/* 4 — EVOLUÇÃO */}
@@ -480,6 +494,7 @@ export default function Report() {
             <SovDonut rows={d.sovRows} brand={d.brand} />
           </Card>
         </div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métricas: barras = AI Visibility Score oficial de cada marca (0–100) · donut = share of voice, o peso do score de cada marca no total das 7 marcas seguidas.</div>
       </Screen>
 
       {/* 5 — SERVIÇOS */}
@@ -505,7 +520,7 @@ export default function Report() {
                 </div>
                 <div style={{ marginLeft: 120, fontSize: 11, color: T.muted, marginTop: 3 }}>
                   presença em {t.present} de {t.nPrompts} perguntas
-                  {t.top5.length > 0 && <> · líder: <strong style={{ color: t.top5[0].isMe ? T.brandRed : T.ink }}>{t.top5[0].name}</strong> ({t.top5[0].vis}%)</>}
+                  {t.ranked.length > 0 && <> · líder: <strong style={{ color: t.ranked[0].isMe ? T.brandRed : T.ink }}>{t.ranked[0].name}</strong> ({t.ranked[0].vis}%)</>}
                 </div>
               </div>
             ))}
@@ -535,7 +550,7 @@ export default function Report() {
               {[...d.topicRows].sort((a, b) => b.avgScore - a.avgScore).map(t => (
                 <div key={t.topic} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11.5, color: T.body, padding: '3px 0', flexWrap: 'wrap' }}>
                   <span style={{ width: 92, fontWeight: 600, color: T.ink }}>{t.topic}</span>
-                  {t.top5.slice(0, 3).map((b, i) => (
+                  {t.ranked.slice(0, 3).map((b, i) => (
                     <span key={b.name} style={{ color: b.isMe ? T.brandRed : T.muted, fontWeight: b.isMe ? 700 : 400 }}>
                       {i + 1}. {b.name} {b.vis}%
                     </span>
@@ -550,11 +565,15 @@ export default function Report() {
       {/* 7 — TOPIC RANKINGS */}
       <Screen id="rankings" n={7} eyebrow="Topic Rankings" data={d} source={SOURCE}>
         <Card>
+          {(() => {
+            const nCols = Math.max(...d.topicRows.map(t => t.ranked.length), 1)
+            return (
+          <div className="report-tablewrap">
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead><tr>
               <th style={thStyle}>Tópico</th>
-              <th style={{ ...thStyle, width: 110 }}>Posição</th>
-              {[1, 2, 3, 4, 5].map(i => <th key={i} style={{ ...thStyle, textAlign: 'center' }}>{i}º</th>)}
+              <th style={{ ...thStyle, width: 104 }}>Posição</th>
+              {Array.from({ length: nCols }, (_, i) => <th key={i} style={{ ...thStyle, textAlign: 'center' }}>{i + 1}º</th>)}
             </tr></thead>
             <tbody>
               {d.topicRows.map(t => {
@@ -569,13 +588,13 @@ export default function Report() {
                     <td style={tdStyle}>
                       <span style={{ fontSize: 10.5, fontWeight: 700, borderRadius: 999, padding: '3px 10px', background: `${badge.color}1c`, color: badge.color, whiteSpace: 'nowrap' }}>{badge.label}</span>
                     </td>
-                    {[0, 1, 2, 3, 4].map(i => {
-                      const b = t.top5[i]
+                    {Array.from({ length: nCols }, (_, i) => {
+                      const b = t.ranked[i]
                       if (!b) return <td key={i} style={{ ...tdStyle, textAlign: 'center', color: T.muted }}>—</td>
                       return (
                         <td key={i} style={{ ...tdStyle, textAlign: 'center' }}>
                           <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                            <span style={{ fontSize: 12, fontWeight: b.isMe ? 700 : 500, color: b.isMe ? T.brandRed : T.ink }}>{b.name}</span>
+                            <span style={{ fontSize: 11.5, fontWeight: b.isMe ? 700 : 500, color: b.isMe ? T.brandRed : T.ink }}>{b.name}</span>
                             <span style={{ fontSize: 10.5, color: T.muted }}>{b.vis}%</span>
                           </div>
                         </td>
@@ -586,7 +605,10 @@ export default function Report() {
               })}
             </tbody>
           </table>
-          <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>% = respostas do tópico que mencionam a marca · a {d.brand} aparece a encarnado</div>
+          </div>
+            )
+          })()}
+          <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>Métrica: % de respostas de IA do tópico que mencionam cada marca (uma marca conta no máximo 1× por resposta). Ranking completo de todas as marcas detetadas; a {d.brand} aparece a encarnado.</div>
         </Card>
       </Screen>
 
@@ -656,7 +678,7 @@ export default function Report() {
               {d.models.map(m => <th key={m} style={{ ...thStyle, textAlign: 'center' }}>{m === 'sonar' ? 'Perplexity' : m === 'google-aio' ? 'AI Overviews' : m === 'google-ai-mode' ? 'AI Mode' : m === 'gpt-4o-mini' ? 'ChatGPT' : m === 'gemini-2.5-flash' ? 'Gemini' : m}</th>)}
             </tr></thead>
             <tbody>
-              {d.heatmap.map(row => (
+              {d.heatmap.filter(row => row.intent !== 'General').map(row => (
                 <tr key={row.intent}>
                   <td style={{ ...tdStyle, fontWeight: 600, color: T.ink }}>{row.intent === 'Commercial' ? 'Comercial' : row.intent === 'Transactional' ? 'Transacional' : row.intent === 'Informational' ? 'Informativa' : 'Marca'}</td>
                   {d.models.map(m => {
@@ -671,6 +693,7 @@ export default function Report() {
           </table>
           </div>
         </Card>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métricas: cartões = score médio (0–100) das respostas de cada motor e nº de respostas que mencionam a marca · tabela = score médio por motor nas perguntas de cada intenção (verde ≥ 70, âmbar 40–69, vermelho &lt; 40).</div>
       </Screen>
 
       {/* 8 — INTENÇÕES */}
@@ -689,6 +712,7 @@ export default function Report() {
           ))}
           <div style={{ fontSize: 11.5, color: T.muted, marginTop: 2 }}>“Marca” é a pergunta direta sobre a {d.brand} — serve de referência, não de comparação.</div>
         </Card>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métrica: score médio de visibilidade (0–100) das perguntas de cada intenção de pesquisa; presença = perguntas onde a marca aparece pelo menos uma vez.</div>
       </Screen>
 
       {/* 9 — NARRATIVA */}
@@ -725,6 +749,7 @@ export default function Report() {
             )}
           </div>
         </div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métricas: sentimento classificado pela Peekaboo em cada menção (positivo/neutro/negativo); atributos extraídos dos resumos de menção — uma menção pode contar em mais de um atributo (mín. 10 menções por atributo).</div>
       </Screen>
 
       {/* 10 — CONCORRENTES E FONTES */}
@@ -751,6 +776,7 @@ export default function Report() {
                 ))}
               </tbody>
             </table>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>Score = AI Visibility Score oficial da Peekaboo (0–100), que pondera presença, posição e destaque da marca nas respostas de IA. Fontes = os 3 domínios mais citados nas respostas em que a marca aparece.</div>
           </Card>
           <div style={{ display: 'grid', gap: 16 }}>
             <Card>
@@ -764,6 +790,7 @@ export default function Report() {
             </Card>
           </div>
         </div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métricas: donut = repartição das citações por origem (próprias = domínios da marca; concorrentes = domínios das marcas seguidas; terceiros = todo o resto) · risco de concentração = % das citações vindas das 5 fontes mais usadas.</div>
       </Screen>
 
       {/* 13 — DOMÍNIOS */}
@@ -789,6 +816,7 @@ export default function Report() {
                 ))}
               </tbody>
             </table>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>Citações = contagem oficial da Peekaboo: cada domínio conta 1× por resposta de IA, independentemente do nº de links citados. Tipo: própria (domínio da {d.brand}), concorrente ou terceiros.</div>
           </Card>
           <Card>
             <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Citações de domínio por motor de IA</div>
