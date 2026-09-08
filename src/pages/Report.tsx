@@ -551,7 +551,10 @@ export default function Report() {
               {Array.from({ length: nCols }, (_, i) => <th key={i} style={{ ...thStyle, textAlign: 'center' }}>{i + 1}º</th>)}
             </tr></thead>
             <tbody>
-              {d.topicRows.map(t => {
+              {[...d.topicRows].sort((a, b) => {
+                const tier = (r: number | null) => (r === 1 ? 0 : r != null && r <= 3 ? 1 : 2)
+                return tier(a.myRank) - tier(b.myRank) || b.myVis - a.myVis
+              }).map(t => {
                 const badge = t.myRank === 1
                   ? { label: 'Líder', color: T.green }
                   : t.myRank != null && t.myRank <= 3

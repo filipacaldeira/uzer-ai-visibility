@@ -21,3 +21,19 @@ const intentOverrides: Record<string, string> =
 export function getPromptIntent(p: { promptId?: string; category?: string | null }): string {
   return (p.promptId && intentOverrides[p.promptId]) || p.category || 'General'
 }
+
+/**
+ * The taxonomy the dashboard actually displays: repo baseline merged with the
+ * edits made in Topics | Prompts (stored in localStorage). The report MUST use
+ * this — never the raw baseline — so both always show the same topics.
+ */
+export function getEffectiveTaxonomy(): { topics: string[]; assignments: Record<string, string> } {
+  let topics = TAXONOMY_TOPICS
+  let assignments: Record<string, string> = { ...taxonomyTopicAssignments }
+  try {
+    const ls = JSON.parse(localStorage.getItem('prompt-topics-list') || 'null')
+    if (Array.isArray(ls) && ls.length > 0) topics = ls
+    assignments = { ...assignments, ...JSON.parse(localStorage.getItem('prompt-topic-assignments') || '{}') }
+  } catch { /* corrupt localStorage — fall back to the baseline */ }
+  return { topics, assignments }
+}

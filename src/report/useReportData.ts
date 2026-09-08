@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, type PromptDetail, type VisibilityData, type CompetitorsData, type PromptItem, type SourcesData } from '../api/client'
 import { usePromptDetails, useBrandVisibilityStats } from '../hooks/useBrandVisibilityStats'
-import { getPromptIntent, taxonomyTopicAssignments, TAXONOMY_TOPICS } from '../data/taxonomy'
+import { getPromptIntent, getEffectiveTaxonomy } from '../data/taxonomy'
 import { llmLabel } from '../utils/format'
 
 const BRAND_ID = 'c727ae2e-28f3-40f9-8e79-bc83ee402cbb'
@@ -160,9 +160,10 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       return { intent, cells }
     }).filter(row => Object.values(row.cells).some(v => v !== null))
 
-    // Topic rows (+ top competitor per topic)
-    const topicRows = TAXONOMY_TOPICS.map(topic => {
-      const ps = prompts.filter(p => taxonomyTopicAssignments[p.promptId] === topic)
+    // Topic rows (+ top competitor per topic) — SAME topics as the dashboard
+    const { topics: effTopics, assignments: effAssign } = getEffectiveTaxonomy()
+    const topicRows = effTopics.map(topic => {
+      const ps = prompts.filter(p => effAssign[p.promptId] === topic)
       const avgScore = ps.length ? Math.round(ps.reduce((s, p) => s + p.averageScore, 0) / ps.length) : 0
       const present = ps.filter(p => p.averageScore > 0).length
       const counts: Record<string, number> = {}
@@ -245,7 +246,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       return ranks.length ? Math.round((ranks.reduce((s, r) => s + r, 0) / ranks.length) * 10) / 10 : null
     }
     const bestPrompts = [...prompts].sort((a, b) => b.averageScore - a.averageScore).slice(0, 5)
-      .map(p => ({ text: p.promptText, score: Math.round(p.averageScore), position: posOf(p.promptId), topic: taxonomyTopicAssignments[p.promptId] || null }))
+      .map(p => ({ text: p.promptText, score: Math.round(p.averageScore), position: posOf(p.promptId), topic: effAssign[p.promptId] || null }))
     const zeros = prompts.filter(p => p.averageScore === 0)
     const zeroCount = zeros.length
     const gapPrompts = zeros.map(p => {
@@ -261,7 +262,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
         })
       })
       const winId = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0]
-      return { text: p.promptText, citations: domains.size, winner: winId ? compName[winId] || null : null, topic: taxonomyTopicAssignments[p.promptId] || null }
+      return { text: p.promptText, citations: domains.size, winner: winId ? compName[winId] || null : null, topic: effAssign[p.promptId] || null }
     }).sort((a, b) => b.citations - a.citations).slice(0, 5)
 
     // Sentiment + attributes
