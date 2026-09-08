@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, Tooltip as RTooltip, CartesianGrid, Legend } from 'recharts'
 import { useReportData, type ReportData } from '../report/useReportData'
 import { autoHeadline } from '../report/headlines'
 import { llmDomain, brandColor } from '../utils/format'
@@ -22,7 +21,7 @@ const fmtInt = (n: number) => Math.round(n).toString().replace(/\B(?=(\d{3})+(?!
 const fmtPos = (n: number) => `${n}º`
 
 const OVERRIDES_KEY = 'report-headline-overrides'
-const SCREEN_IDS = ['capa', 'sumario', 'score', 'evolucao', 'sov', 'servicos', 'rankings', 'perguntas', 'motores', 'intencoes', 'narrativa', 'fontes', 'dominios']
+const SCREEN_IDS = ['capa', 'sumario', 'score', 'sov', 'servicos', 'rankings', 'perguntas', 'motores', 'intencoes', 'narrativa', 'fontes', 'dominios']
 const TOTAL_SCREENS = SCREEN_IDS.length
 
 function readOverrides(): Record<string, string> {
@@ -456,32 +455,8 @@ export default function Report() {
         <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métrica: score de visibilidade Peekaboo (0–100) — média do score de todas as respostas de IA do período; cada resposta pontua pela presença e destaque da marca (0 quando ausente). Posição média = ordem em que a marca surge quando é mencionada.</div>
       </Screen>
 
-      {/* 4 — EVOLUÇÃO */}
-      <Screen id="evolucao" n={4} eyebrow="Evolução" data={d} source={SOURCE}>
-        <Card style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 12, color: T.muted, marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Score de visibilidade diário por marca (0–100) — respostas sem menção contam como 0</div>
-          <div style={{ flex: 1, minHeight: 300 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={d.timeline.map(pt => ({ date: pt.date, ...pt.values }))} margin={{ top: 8, right: 14, left: -16, bottom: 0 }}>
-                <CartesianGrid stroke={T.border} vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: T.muted }} interval="preserveStartEnd" minTickGap={26} />
-                <YAxis tick={{ fontSize: 10, fill: T.muted }} tickFormatter={v => `${v}%`} domain={[0, 'auto']} />
-                <RTooltip contentStyle={{ background: '#fff', border: `1px solid ${T.border}`, borderRadius: 8, fontSize: 12 }} formatter={(v) => [`${v}%`]} />
-                <Legend wrapperStyle={{ fontSize: 11 }} />
-                {Object.keys(d.timeline[0]?.values || {}).map(name => (
-                  <Line key={name} type="monotone" dataKey={name} dot={false} isAnimationActive={false}
-                    stroke={name === d.brand ? T.brandRed : brandColor(name)}
-                    strokeWidth={name === d.brand ? 3 : 1.5}
-                    strokeOpacity={name === d.brand ? 1 : 0.75} />
-                ))}
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
-        </Card>
-      </Screen>
-
-      {/* 5 — SHARE OF VOICE */}
-      <Screen id="sov" n={5} eyebrow="Share of voice" data={d} source={SOURCE}>
+      {/* 4 — SHARE OF VOICE */}
+      <Screen id="sov" n={4} eyebrow="Share of voice" data={d} source={SOURCE}>
         <div className="report-grid" style={{ gridTemplateColumns: '1.25fr 1fr' }}>
           <Card>
             {d.sovRows.map(r => (
@@ -494,11 +469,11 @@ export default function Report() {
             <SovDonut rows={d.sovRows} brand={d.brand} />
           </Card>
         </div>
-        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métricas: barras = AI Visibility Score oficial de cada marca (0–100) · donut = share of voice, o peso do score de cada marca no total das 7 marcas seguidas.</div>
+        <div style={{ fontSize: 11, color: T.muted, marginTop: 14 }}>Métricas: barras = visibilidade em IA por marca (0–100), a mesma métrica do dashboard (% de respostas que mencionam a marca, calibrada ao score oficial da Peekaboo) · donut = share of voice, o peso de cada marca no total das 7.</div>
       </Screen>
 
       {/* 5 — SERVIÇOS */}
-      <Screen id="servicos" n={6} eyebrow="Serviços" data={d} source={SOURCE}>
+      <Screen id="servicos" n={5} eyebrow="Serviços" data={d} source={SOURCE}>
         <div className="report-grid" style={{ gridTemplateColumns: '1.15fr 1fr' }}>
           <Card>
             <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Score da {d.brand} e posição competitiva por tópico</div>
@@ -563,7 +538,7 @@ export default function Report() {
       </Screen>
 
       {/* 7 — TOPIC RANKINGS */}
-      <Screen id="rankings" n={7} eyebrow="Topic Rankings" data={d} source={SOURCE}>
+      <Screen id="rankings" n={6} eyebrow="Topic Rankings" data={d} source={SOURCE}>
         <Card>
           {(() => {
             const nCols = Math.max(...d.topicRows.map(t => t.ranked.length), 1)
@@ -613,7 +588,7 @@ export default function Report() {
       </Screen>
 
       {/* 8 — PERGUNTAS */}
-      <Screen id="perguntas" n={8} eyebrow="Perguntas | Prompts" data={d} source={SOURCE}>
+      <Screen id="perguntas" n={7} eyebrow="Perguntas | Prompts" data={d} source={SOURCE}>
         <div className="report-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
           <Card>
             <div style={{ color: T.green, fontSize: 12, fontWeight: 700, letterSpacing: '0.2em', textTransform: 'uppercase', marginBottom: 10 }}>Onde a {d.brand} ganha</div>
@@ -654,7 +629,7 @@ export default function Report() {
       </Screen>
 
       {/* 7 — MOTORES */}
-      <Screen id="motores" n={9} eyebrow="Motores" data={d} source={SOURCE}>
+      <Screen id="motores" n={8} eyebrow="Motores" data={d} source={SOURCE}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 18 }}>
           {d.llmCards.map(c => {
             const dom = llmDomain(c.model)
@@ -697,7 +672,7 @@ export default function Report() {
       </Screen>
 
       {/* 8 — INTENÇÕES */}
-      <Screen id="intencoes" n={10} eyebrow="Intenções" data={d} source={SOURCE}>
+      <Screen id="intencoes" n={9} eyebrow="Intenções" data={d} source={SOURCE}>
         <Card>
           {[...d.intentRows].sort((a, b) => (a.isRef ? 1 : 0) - (b.isRef ? 1 : 0) || b.avgScore - a.avgScore).map(r => (
             <HBar
@@ -716,7 +691,7 @@ export default function Report() {
       </Screen>
 
       {/* 9 — NARRATIVA */}
-      <Screen id="narrativa" n={11} eyebrow="Narrativa" data={d} source={`${SOURCE} · sentimento por menção`}>
+      <Screen id="narrativa" n={10} eyebrow="Narrativa" data={d} source={`${SOURCE} · sentimento por menção`}>
         <div className="report-grid" style={{ gridTemplateColumns: '1.1fr 1fr' }}>
           <Card>
             <div style={{ fontSize: 12, color: T.muted, marginBottom: 12, letterSpacing: '0.1em', textTransform: 'uppercase' }}>% de menções positivas por marca</div>
@@ -753,7 +728,7 @@ export default function Report() {
       </Screen>
 
       {/* 10 — CONCORRENTES E FONTES */}
-      <Screen id="fontes" n={12} eyebrow="Concorrentes e fontes" data={d} source={SOURCE}>
+      <Screen id="fontes" n={11} eyebrow="Concorrentes e fontes" data={d} source={SOURCE}>
         <div className="report-grid" style={{ gridTemplateColumns: '1.35fr 1fr' }}>
           <Card>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -776,7 +751,7 @@ export default function Report() {
                 ))}
               </tbody>
             </table>
-            <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>Score = AI Visibility Score oficial da Peekaboo (0–100), que pondera presença, posição e destaque da marca nas respostas de IA. Fontes = os 3 domínios mais citados nas respostas em que a marca aparece.</div>
+            <div style={{ fontSize: 11, color: T.muted, marginTop: 10 }}>Score = visibilidade em IA (0–100), a mesma métrica do cartão \"AI Score vs Competitors\" do dashboard: % de respostas que mencionam a marca, calibrada ao score oficial da Peekaboo. Fontes = os 3 domínios mais citados nas respostas em que a marca aparece.</div>
           </Card>
           <div style={{ display: 'grid', gap: 16 }}>
             <Card>
@@ -794,7 +769,7 @@ export default function Report() {
       </Screen>
 
       {/* 13 — DOMÍNIOS */}
-      <Screen id="dominios" n={13} eyebrow="Domínios citados" data={d} source={SOURCE}>
+      <Screen id="dominios" n={12} eyebrow="Domínios citados" data={d} source={SOURCE}>
         <div className="report-grid" style={{ gridTemplateColumns: '1fr 1.4fr' }}>
           <Card>
             <div style={{ fontSize: 12, color: T.muted, marginBottom: 10, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Top 5 domínios mais citados</div>

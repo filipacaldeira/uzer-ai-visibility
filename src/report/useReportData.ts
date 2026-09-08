@@ -116,16 +116,36 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
     }))
     const avgPosition = allRanks.length ? Math.round((allRanks.reduce((s, r) => s + r, 0) / allRanks.length) * 10) / 10 : null
 
-    // SOV
+    // SOV — same computation as the dashboard's "AI Score vs Competitors" card:
+    // per-brand mention rate from the run history (canonical dedup, 1× per run),
+    // calibrated so the brand lands exactly on the official /visibility score.
     const myName = 'MyForce'
+    let sovTotalRuns = 0
+    const sovCounts: Record<string, number> = {}
+    details.forEach(d => (d.history || []).forEach(run => {
+      sovTotalRuns++
+      const seen = new Set<string>()
+      ;(run.brandMentions || []).forEach(mn => {
+        if (mn.type !== 'brand' && mn.type !== 'competitor') return
+        const key = mn.type === 'brand' ? '__brand__' : (mn.competitorId || '')
+        if (!key || seen.has(key)) return
+        seen.add(key)
+        sovCounts[key] = (sovCounts[key] || 0) + 1
+      })
+    }))
+    const rate = (key: string) => sovTotalRuns > 0 ? ((sovCounts[key] || 0) / sovTotalRuns) * 100 : 0
+    const myRate = rate('__brand__')
+    const calib = myRate > 0 && vis.visibility.score > 0 ? vis.visibility.score / myRate : 1
     const sovRows = [
-      { name: myName, score: comp.brand.score, isMe: true },
-      ...comp.competitors.map(c => ({ name: c.name, score: c.score, isMe: false })),
+      { name: myName, score: Math.round(myRate * calib), isMe: true },
+      ...comp.competitors.map(c => ({ name: c.name, score: Math.round(rate(c.id) * calib), isMe: false })),
     ].sort((a, b) => b.score - a.score)
-    const avgCompScore = comp.competitors.length
-      ? Math.round((comp.competitors.reduce((s, c) => s + c.score, 0) / comp.competitors.length) * 10) / 10 : 0
-    const bestComp = [...comp.competitors].sort((a, b) => b.score - a.score)[0]
-    const leaderGap = comp.brand.score - (bestComp?.score || 0)
+    const compRows = sovRows.filter(r => !r.isMe)
+    const avgCompScore = compRows.length
+      ? Math.round((compRows.reduce((s, r) => s + r.score, 0) / compRows.length) * 10) / 10 : 0
+    const bestComp = compRows[0]
+    const myRow = sovRows.find(r => r.isMe)!
+    const leaderGap = myRow.score - (bestComp?.score || 0)
     const leaderName = bestComp?.name || '—'
 
     // LLM cards + per-run helper
