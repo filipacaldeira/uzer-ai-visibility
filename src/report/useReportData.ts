@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, type PromptDetail, type VisibilityData, type CompetitorsData, type PromptItem, type SourcesData } from '../api/client'
-import { usePromptDetails } from '../hooks/useBrandVisibilityStats'
+import { usePromptDetails, useBrandVisibilityStats } from '../hooks/useBrandVisibilityStats'
 import { getPromptIntent, taxonomyTopicAssignments, TAXONOMY_TOPICS } from '../data/taxonomy'
 import { llmLabel } from '../utils/format'
 
@@ -77,6 +77,9 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
   const pd = usePromptDetails(BRAND_ID, timeRange)
+  // Same aggregation object the dashboard's Overview consumes — guarantees the
+  // report's competitive numbers always match the dashboard exactly.
+  const stats = useBrandVisibilityStats(BRAND_ID, timeRange)
 
   useEffect(() => {
     let alive = true
@@ -92,11 +95,11 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
     return () => { alive = false }
   }, [timeRange])
 
-  const raw = core && !pd.loading ? { ...core, details: pd.details } : null
+  const raw = core && !pd.loading && stats ? { ...core, details: pd.details, stats } : null
 
   const data = useMemo<ReportData | null>(() => {
     if (!raw) return null
-    const { vis, comp, prompts, sources, details } = raw
+    const { vis, comp, prompts, sources, details, stats: brandStats } = raw
 
     const compName: Record<string, string> = {}
     const compHosts: Record<string, string> = {}
@@ -116,36 +119,22 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
     }))
     const avgPosition = allRanks.length ? Math.round((allRanks.reduce((s, r) => s + r, 0) / allRanks.length) * 10) / 10 : null
 
-    // SOV — same computation as the dashboard's "AI Score vs Competitors" card:
-    // per-brand mention rate from the run history (canonical dedup, 1× per run),
-    // calibrated so the brand lands exactly on the official /visibility score.
+    // SOV — IDENTICAL math to Overview's "AI Score vs Competitors" card:
+    // same aggregation rows (useBrandVisibilityStats) + same calibration and
+    // rounding, so report and dashboard can never diverge.
     const myName = 'MyForce'
-    let sovTotalRuns = 0
-    const sovCounts: Record<string, number> = {}
-    details.forEach(d => (d.history || []).forEach(run => {
-      sovTotalRuns++
-      const seen = new Set<string>()
-      ;(run.brandMentions || []).forEach(mn => {
-        if (mn.type !== 'brand' && mn.type !== 'competitor') return
-        const key = mn.type === 'brand' ? '__brand__' : (mn.competitorId || '')
-        if (!key || seen.has(key)) return
-        seen.add(key)
-        sovCounts[key] = (sovCounts[key] || 0) + 1
-      })
-    }))
-    const rate = (key: string) => sovTotalRuns > 0 ? ((sovCounts[key] || 0) / sovTotalRuns) * 100 : 0
-    const myRate = rate('__brand__')
-    const calib = myRate > 0 && vis.visibility.score > 0 ? vis.visibility.score / myRate : 1
-    const sovRows = [
-      { name: myName, score: Math.round(myRate * calib), isMe: true },
-      ...comp.competitors.map(c => ({ name: c.name, score: Math.round(rate(c.id) * calib), isMe: false })),
-    ].sort((a, b) => b.score - a.score)
+    const statsRows = brandStats.all
+    const mySampled = statsRows.find(r => r.isMe)?.visibility ?? 0
+    const calib = mySampled > 0 && vis.visibility.score ? vis.visibility.score / mySampled : 1
+    const sovRows = statsRows
+      .map(r => ({ name: r.name, score: Math.round(r.visibility * calib), isMe: r.isMe }))
+      .sort((a, b) => b.score - a.score)
     const compRows = sovRows.filter(r => !r.isMe)
     const avgCompScore = compRows.length
       ? Math.round((compRows.reduce((s, r) => s + r.score, 0) / compRows.length) * 10) / 10 : 0
     const bestComp = compRows[0]
-    const myRow = sovRows.find(r => r.isMe)!
-    const leaderGap = myRow.score - (bestComp?.score || 0)
+    const myRow = sovRows.find(r => r.isMe)
+    const leaderGap = (myRow?.score || 0) - (bestComp?.score || 0)
     const leaderName = bestComp?.name || '—'
 
     // LLM cards + per-run helper
@@ -200,13 +189,17 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
           rankCounts[key] = (rankCounts[key] || 0) + 1
         })
       }))
-      const ranked = Object.entries(rankCounts)
-        .map(([key, c]) => ({
-          isMe: key === '__brand__',
-          name: key === '__brand__' ? 'MyForce' : (compName[key] || ''),
-          vis: topicRuns > 0 ? Math.round((c / topicRuns) * 100) : 0,
+      // Every tracked brand appears in the ranking, with 0% when absent
+      const allBrands = [
+        { key: '__brand__', name: myName, isMe: true },
+        ...comp.competitors.map(c => ({ key: c.id, name: c.name, isMe: false })),
+      ]
+      const ranked = allBrands
+        .map(b => ({
+          isMe: b.isMe,
+          name: b.name,
+          vis: topicRuns > 0 ? Math.round(((rankCounts[b.key] || 0) / topicRuns) * 100) : 0,
         }))
-        .filter(r => r.isMe || r.name)
         .sort((a, b) => b.vis - a.vis)
       const myIdx = ranked.findIndex(r => r.isMe)
       return {
@@ -435,7 +428,7 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       concentration,
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [core, pd.details, pd.loading])
+  }, [core, pd.details, pd.loading, stats])
 
   return { data, loading: !raw && !error, error, partial: pd.partial }
 }
