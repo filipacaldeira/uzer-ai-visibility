@@ -1,8 +1,7 @@
 const BASE_URL = '/api-proxy/api/v1'
-// Provided at build time: .env.local for local builds/dev, VITE_API_KEY env var
-// on Netlify CI builds. Never hardcode the key here — this file is versioned.
-const API_KEY = import.meta.env.VITE_API_KEY
-if (!API_KEY) throw new Error('VITE_API_KEY is not set — add it to dashboard/.env.local or the Netlify environment')
+// The Peekaboo API key never reaches the browser: /api-proxy is served by a
+// Netlify edge function (production) or the Vite proxy (local dev/preview),
+// both of which inject the key server-side.
 
 // Some upstream endpoints (notably /visibility) legitimately take 9–25s, so the
 // timeout is generous. Successful responses are cached in localStorage: fresh
@@ -74,10 +73,7 @@ async function apiFetch<T>(path: string, attempt = 0): Promise<T> {
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 35000)
   try {
-    const res = await fetch(`${BASE_URL}${path}`, {
-      headers: { 'X-API-Key': API_KEY },
-      signal: ctrl.signal,
-    })
+    const res = await fetch(`${BASE_URL}${path}`, { signal: ctrl.signal })
     if (!res.ok) throw new ApiError(`API error ${res.status}: ${path}`, res.status, res.headers.get('retry-after'))
     const json = await res.json()
     if (!json.success) throw new Error(json.error?.message || 'API error')

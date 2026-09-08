@@ -6,14 +6,8 @@
 [build.environment]
   NODE_VERSION = "20"
 
-# Proxy API calls: keeps the /api-proxy prefix that the dev server uses
-# so no code changes are needed. Netlify rewrites strip the prefix and
-# forward to the upstream API host.
-[[redirects]]
-  from   = "/api-proxy/*"
-  to     = "https://www.aipeekaboo.com/:splat"
-  status = 200
-  force  = true
+# /api-proxy/* is handled by the edge function in netlify/edge-functions/
+# api-proxy.ts, which injects the API key server-side (PEEKABOO_API_KEY env).
 
 # SPA fallback: every other route falls back to index.html so React Router
 # can render the correct page on a hard-refresh or direct link.
