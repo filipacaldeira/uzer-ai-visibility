@@ -324,10 +324,11 @@ export default function Sources() {
 
       {/* Top Cited Domains table */}
       <div className="card">
-        <p className="section-title inline-flex items-center gap-1.5">
+        <p className="section-title mb-1 inline-flex items-center gap-1.5">
           Top Cited Domains
           <InfoTip text="Ranked domains by citation count. Click a column header to sort. Type includes 'competitor' for tracked competitors' own sites." />
         </p>
+        <p className="text-2xs text-brand-dim mb-2">Official Peekaboo count — each domain counts once per AI answer, no matter how many of its links the answer cites</p>
         <table className="w-full">
           <thead>
             <tr className="border-b border-brand-border">
@@ -411,7 +412,7 @@ export default function Sources() {
               Domain Citations by AI Model
               <InfoTip text="How often each domain is cited per AI platform, counted from the real run history of every tracked prompt (sample-based). Cell colour intensity is relative to each platform's own maximum." />
             </p>
-            <p className="text-2xs text-brand-dim">How often each domain is cited per AI provider</p>
+            <p className="text-2xs text-brand-dim">Every cited link counts — if one answer cites 4 pages of a domain, it counts 4. Larger numbers than the table above by design</p>
           </div>
           <div className="relative">
             <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-brand-dim" />
