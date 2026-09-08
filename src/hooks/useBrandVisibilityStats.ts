@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type PromptDetail } from '../api/client'
+import { shortBrand } from '../utils/format'
 
 // Module-level cache so Overview and ByPrompt can share the same batch of
 // per-prompt detail requests without refetching (keyed by brand + time range).
@@ -75,7 +76,7 @@ function buildRows(agg: Agg, totalRuns: number, compNames: Record<string, string
     const canonical = key !== '__brand__' && compNames[key]
     const votedName = Object.entries(a.nameVotes).sort((x, y) => y[1] - x[1])[0]?.[0] || key
     return {
-      name: canonical || votedName,
+      name: canonical || shortBrand(votedName),
       isMe: a.isMe,
       visibility: totalRuns > 0 ? Math.round((a.mentions / totalRuns) * 100) : 0,
       sentiment: sentTotal > 0 ? Math.round((a.pos / sentTotal) * 100) : null,
@@ -166,7 +167,7 @@ export function useBrandVisibilityStats(brandId: string, timeRange: string, enab
       const keyName: Record<string, string> = {}
       Object.entries(agg).forEach(([key, a]) => {
         const votedName = Object.entries(a.nameVotes).sort((x, y) => y[1] - x[1])[0]?.[0] || key
-        const name = (key !== '__brand__' && compNames[key]) || votedName
+        const name = (key !== '__brand__' && compNames[key]) || shortBrand(votedName)
         if (keptNames.has(name)) keyName[key] = name
       })
 

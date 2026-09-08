@@ -99,6 +99,11 @@ export const BRAND_COLORS: Record<string, string> = {
   'Roady': '#CBD5E1',
 }
 
+/** Display name: the user's own brand always shows as the short "MyForce" */
+export function shortBrand(name: string): string {
+  return /myforce/i.test(name) ? 'MyForce' : name
+}
+
 /** Resolve a brand's fixed colour (fuzzy: matches names like "Oficinas MyForce Portugal") */
 export function brandColor(name: string, isMe = false): string {
   if (isMe) return MY_BRAND_COLOR

@@ -230,13 +230,13 @@ export default function Overview() {
         <div className="grid grid-cols-2 gap-2.5">
           {/* LIME Hero — AI Visibility Score */}
           <div
-            className="rounded-xl px-4 py-3 relative overflow-hidden shadow-[0_6px_16px_-12px_rgba(223,255,17,0.4)]"
+            className="rounded-xl px-4 py-3 relative hover:z-30 shadow-[0_6px_16px_-12px_rgba(223,255,17,0.4)]"
             style={{
               background: 'linear-gradient(135deg, #F0FF6E 0%, #DFFF11 45%, #98C20A 100%)',
               color: '#0B0F1A',
             }}
           >
-            <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full opacity-40" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.6) 0%, transparent 70%)' }} />
+            <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none"><div className="absolute -top-6 -right-6 w-16 h-16 rounded-full opacity-40" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.6) 0%, transparent 70%)' }} /></div>
             <div className="flex items-center justify-between relative mb-1">
               <span className="text-2xs font-bold uppercase tracking-wider opacity-80 inline-flex items-center gap-1">
                 AI Visibility
@@ -257,13 +257,13 @@ export default function Overview() {
 
           {/* CYAN Hero — AI Share of Voice */}
           <div
-            className="rounded-xl px-4 py-3 relative overflow-hidden shadow-[0_6px_16px_-12px_rgba(6,182,212,0.4)]"
+            className="rounded-xl px-4 py-3 relative hover:z-30 shadow-[0_6px_16px_-12px_rgba(6,182,212,0.4)]"
             style={{
               background: 'linear-gradient(135deg, #5BE2F2 0%, #06B6D4 45%, #06647A 100%)',
               color: '#06121A',
             }}
           >
-            <div className="absolute -top-6 -right-6 w-16 h-16 rounded-full opacity-35" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.7) 0%, transparent 70%)' }} />
+            <div className="absolute inset-0 overflow-hidden rounded-xl pointer-events-none"><div className="absolute -top-6 -right-6 w-16 h-16 rounded-full opacity-35" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.7) 0%, transparent 70%)' }} /></div>
             <div className="flex items-center justify-between relative mb-1">
               <span className="text-2xs font-bold uppercase tracking-wider opacity-80 inline-flex items-center gap-1">
                 Share of Voice
