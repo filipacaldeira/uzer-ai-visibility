@@ -15,6 +15,43 @@ const CACHE_FRESH_MS = 6 * 60 * 60 * 1000
 // so every page in the SPA session shows the same coherent snapshot.
 const PAGE_LOAD_TS = Date.now()
 
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
+
+export class ApiError extends Error {
+  status?: number
+  retryAfter?: string | null
+  constructor(message: string, status?: number, retryAfter?: string | null) {
+    super(message)
+    this.status = status
+    this.retryAfter = retryAfter
+  }
+}
+
+// ── Rate-limit gate ──────────────────────────────────────────────────────────
+// When the API answers 429 we honour its Retry-After (or back off 5s/15s) and
+// hold EVERY request behind a shared cooldown, so a batch of 50 detail calls
+// doesn't keep hammering a rate-limited server.
+let cooldownUntil = 0
+export function isRateLimited() { return Date.now() < cooldownUntil }
+
+// ── Stale-cache tracking ─────────────────────────────────────────────────────
+// When a request fails and we serve the localStorage fallback instead, the UI
+// should say so. Subscribers (the header badge) are notified with the age of
+// the oldest cached payload served this session.
+let staleOldestTs: number | null = null
+const staleListeners = new Set<() => void>()
+export function getStaleOldestTs() { return staleOldestTs }
+export function subscribeStale(cb: () => void) {
+  staleListeners.add(cb)
+  return () => { staleListeners.delete(cb) }
+}
+function markStaleServed(ts: number) {
+  if (staleOldestTs === null || ts < staleOldestTs) {
+    staleOldestTs = ts
+    staleListeners.forEach(f => f())
+  }
+}
+
 function readCache<T>(path: string): { t: number; data: T } | null {
   try {
     const raw = localStorage.getItem(`api:${path}`)
@@ -31,6 +68,9 @@ async function apiFetch<T>(path: string, attempt = 0): Promise<T> {
     const cached = readCache<T>(path)
     if (cached && cached.t >= PAGE_LOAD_TS && Date.now() - cached.t < CACHE_FRESH_MS) return cached.data
   }
+  // Respect any active rate-limit cooldown before touching the network
+  const hold = cooldownUntil - Date.now()
+  if (hold > 0) await sleep(hold)
   const ctrl = new AbortController()
   const timer = setTimeout(() => ctrl.abort(), 35000)
   try {
@@ -38,19 +78,31 @@ async function apiFetch<T>(path: string, attempt = 0): Promise<T> {
       headers: { 'X-API-Key': API_KEY },
       signal: ctrl.signal,
     })
-    if (!res.ok) throw new Error(`API error ${res.status}: ${path}`)
+    if (!res.ok) throw new ApiError(`API error ${res.status}: ${path}`, res.status, res.headers.get('retry-after'))
     const json = await res.json()
     if (!json.success) throw new Error(json.error?.message || 'API error')
     writeCache(path, json.data)
     return json.data as T
   } catch (err) {
     if (attempt < 2) {
-      await new Promise(r => setTimeout(r, 800 * (attempt + 1)))
+      if (err instanceof ApiError && err.status === 429) {
+        // Honour Retry-After (seconds); exponential 5s/15s fallback when absent
+        const ra = err.retryAfter ? parseInt(err.retryAfter, 10) : NaN
+        const delay = Number.isFinite(ra) && ra > 0 ? Math.min(ra * 1000, 60000) : [5000, 15000][attempt]
+        cooldownUntil = Math.max(cooldownUntil, Date.now() + delay)
+        await sleep(Math.max(cooldownUntil - Date.now(), 0))
+      } else {
+        await sleep(800 * (attempt + 1))
+      }
       return apiFetch<T>(path, attempt + 1)
     }
-    // All retries exhausted — serve stale cache rather than failing the card
+    // All retries exhausted — serve stale cache rather than failing the card,
+    // and tell the UI it is looking at old data
     const stale = readCache<T>(path)
-    if (stale) return stale.data
+    if (stale) {
+      markStaleServed(stale.t)
+      return stale.data
+    }
     throw err
   } finally {
     clearTimeout(timer)

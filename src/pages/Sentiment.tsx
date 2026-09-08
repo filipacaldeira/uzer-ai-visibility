@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, LineChart, Line, CartesianGrid, } from 'recharts'
 import { api, type PromptDetail } from '../api/client'
-import { fetchAllPromptDetails } from '../hooks/useBrandVisibilityStats'
+import { usePromptDetails } from '../hooks/useBrandVisibilityStats'
 import { brandColor, brandStroke, llmLabel, llmDomain, MY_BRAND_COLOR } from '../utils/format'
 import { InfoTip } from '../components/ui/InfoTip'
 import { useApi } from '../hooks/useApi'
@@ -52,18 +52,13 @@ function AttrRow({ rank, attr, accent }: {
 
 export default function Sentiment() {
   const [timeRange, setTimeRange] = useState('30d')
-  const [details, setDetails] = useState<PromptDetail[] | null>(null)
-
   const { data: comp, loading, error, refetch } = useApi(
     () => api.competitors(BRAND_ID, timeRange), [timeRange]
   )
 
-  useEffect(() => {
-    let alive = true
-    setDetails(null)
-    fetchAllPromptDetails(BRAND_ID, timeRange).then(d => { if (alive) setDetails(d) })
-    return () => { alive = false }
-  }, [timeRange])
+  // Shared detail store (live-updates as background retries complete)
+  const detailsState = usePromptDetails(BRAND_ID, timeRange)
+  const details = detailsState.loading ? null : detailsState.details
 
   // One aggregation pass over the run history: sentiment of each canonical
   // brand's mentions — overall per brand, per AI model (MyForce only) and per

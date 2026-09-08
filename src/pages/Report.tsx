@@ -6,6 +6,7 @@ import { autoHeadline } from '../report/headlines'
 import { llmDomain, brandColor } from '../utils/format'
 import { Favicon } from '../components/ui/Favicon'
 import factsFlags from '../data/myforce_facts_flags.json'
+import { PartialDataNotice, StaleBadge } from '../components/ui/DataHealth'
 
 // UZER Ethereal Flux tokens (design skill)
 const T = {
@@ -306,6 +307,7 @@ export default function Report() {
 
   return (
     <div style={{ fontFamily: 'Inter, sans-serif', background: T.paper }}>
+      <PartialDataNotice lang="pt" />
       <style>{`
         .report-screen { min-height: 92vh; position: relative; display: flex; flex-direction: column; padding: 56px 64px 30px; box-sizing: border-box; }
         .report-screen h2[contenteditable]:hover { box-shadow: 0 2px 0 ${T.purple}55; }
@@ -351,6 +353,7 @@ export default function Report() {
           style={{ background: T.navy, color: '#fff', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, cursor: 'pointer' }}>
           Apresentar
         </button>
+        <StaleBadge lang="pt" />
         <button onClick={() => window.print()}
           style={{ background: T.lime, color: T.navy, border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
           Exportar PDF
@@ -442,7 +445,7 @@ export default function Report() {
       {/* 4 — EVOLUÇÃO */}
       <Screen id="evolucao" n={4} eyebrow="Evolução" data={d} source={SOURCE}>
         <Card style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 12, color: T.muted, marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>% de respostas que mencionam cada marca, por dia</div>
+          <div style={{ fontSize: 12, color: T.muted, marginBottom: 8, letterSpacing: '0.1em', textTransform: 'uppercase' }}>Score de visibilidade diário por marca (0–100) — respostas sem menção contam como 0</div>
           <div style={{ flex: 1, minHeight: 300 }}>
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={d.timeline.map(pt => ({ date: pt.date, ...pt.values }))} margin={{ top: 8, right: 14, left: -16, bottom: 0 }}>

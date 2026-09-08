@@ -8,7 +8,7 @@ import { ErrorState, PageSkeleton } from '../components/ui/LoadingState'
 import { Favicon } from '../components/ui/Favicon'
 import { InfoTip } from '../components/ui/InfoTip'
 import { llmDomain, llmLabel, llmColor } from '../utils/format'
-import { fetchAllPromptDetails } from '../hooks/useBrandVisibilityStats'
+import { usePromptDetails } from '../hooks/useBrandVisibilityStats'
 
 const BRAND_ID = 'c727ae2e-28f3-40f9-8e79-bc83ee402cbb'
 
@@ -136,29 +136,24 @@ export default function Sources() {
   }, [enriched, sortKey, sortDir])
 
   // ── Real per-model citation counts from the run history sample ────────────
-  const [modelCitations, setModelCitations] = useState<Record<string, Record<string, number>> | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    setModelCitations(null)
-    fetchAllPromptDetails(BRAND_ID, timeRange).then(details => {
-      if (!alive) return
-      const map: Record<string, Record<string, number>> = {}
-      details.forEach(d => {
-        ;(d.history || []).forEach(run => {
-          const model = run.aiModel || 'unknown'
-          ;(run.sources || []).forEach(src => {
-            const dom = (src.domain || '').replace(/^www\./, '')
-            if (!dom) return
-            if (!map[model]) map[model] = {}
-            map[model][dom] = (map[model][dom] || 0) + 1
-          })
+// Shared detail store (live-updates as background retries complete)
+  const detailsState = usePromptDetails(BRAND_ID, timeRange)
+  const modelCitations = useMemo<Record<string, Record<string, number>> | null>(() => {
+    if (detailsState.loading) return null
+    const map: Record<string, Record<string, number>> = {}
+    detailsState.details.forEach(d => {
+      ;(d.history || []).forEach(run => {
+        const model = run.aiModel || 'unknown'
+        ;(run.sources || []).forEach(src => {
+          const dom = (src.domain || '').replace(/^www\./, '')
+          if (!dom) return
+          if (!map[model]) map[model] = {}
+          map[model][dom] = (map[model][dom] || 0) + 1
         })
       })
-      setModelCitations(map)
-    }).catch(() => { if (alive) setModelCitations({}) })
-    return () => { alive = false }
-  }, [timeRange])
+    })
+    return map
+  }, [detailsState.details, detailsState.loading])
 
   const modelsPresent = useMemo(() => {
     if (!modelCitations) return []

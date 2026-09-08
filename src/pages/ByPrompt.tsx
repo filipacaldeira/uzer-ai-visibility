@@ -9,7 +9,7 @@ import { ErrorState, PageSkeleton } from '../components/ui/LoadingState'
 import { truncate, scoreBg } from '../utils/format'
 import { InfoTip } from '../components/ui/InfoTip'
 import { Favicon } from '../components/ui/Favicon'
-import { fetchAllPromptDetails } from '../hooks/useBrandVisibilityStats'
+import { usePromptDetails } from '../hooks/useBrandVisibilityStats'
 
 const BRAND_ID = 'c727ae2e-28f3-40f9-8e79-bc83ee402cbb'
 const ALL_MODELS = ['gpt-4o-mini', 'gemini-2.5-flash', 'google-ai-mode', 'google-aio']
@@ -115,14 +115,10 @@ export default function ByPrompt() {
     () => api.competitors(BRAND_ID, timeRange), [timeRange]
   )
 
-  // Full run-history details (shared module cache with Overview/Sources)
-  const [allDetails, setAllDetails] = useState<PromptDetail[] | null>(null)
-  useEffect(() => {
-    let alive = true
-    setAllDetails(null)
-    fetchAllPromptDetails(BRAND_ID, timeRange).then(d => { if (alive) setAllDetails(d) }).catch(() => { if (alive) setAllDetails([]) })
-    return () => { alive = false }
-  }, [timeRange])
+  // Full run-history details (shared store with Overview/Sources; live-updates
+  // as background retries complete missing prompts)
+  const detailsState = usePromptDetails(BRAND_ID, timeRange)
+  const allDetails = detailsState.loading ? null : detailsState.details
 
   // Per-prompt extras (sentiment / position / citations) from the detail endpoint,
   // fetched in small batches to avoid hammering the API

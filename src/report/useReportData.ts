@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { api, type PromptDetail, type VisibilityData, type CompetitorsData, type PromptItem, type SourcesData } from '../api/client'
-import { fetchAllPromptDetails } from '../hooks/useBrandVisibilityStats'
+import { usePromptDetails } from '../hooks/useBrandVisibilityStats'
 import { getPromptIntent, taxonomyTopicAssignments, TAXONOMY_TOPICS } from '../data/taxonomy'
 import { llmLabel } from '../utils/format'
 
@@ -71,26 +71,28 @@ const ATTRS: Array<{ label: string; re: RegExp }> = [
 
 function rangeDays(tr: string) { return tr === '7d' ? 7 : tr === '90d' ? 90 : 30 }
 
-export function useReportData(timeRange: string): { data: ReportData | null; loading: boolean; error: string | null } {
-  const [raw, setRaw] = useState<{
-    vis: VisibilityData; comp: CompetitorsData; prompts: PromptItem[]; sources: SourcesData; details: PromptDetail[]
+export function useReportData(timeRange: string): { data: ReportData | null; loading: boolean; error: string | null; partial: boolean } {
+  const [core, setCore] = useState<{
+    vis: VisibilityData; comp: CompetitorsData; prompts: PromptItem[]; sources: SourcesData
   } | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const pd = usePromptDetails(BRAND_ID, timeRange)
 
   useEffect(() => {
     let alive = true
-    setRaw(null); setError(null)
+    setCore(null); setError(null)
     Promise.all([
       api.visibility(BRAND_ID, timeRange),
       api.competitors(BRAND_ID, timeRange),
       api.prompts(BRAND_ID, timeRange),
       api.sources(BRAND_ID, timeRange),
-      fetchAllPromptDetails(BRAND_ID, timeRange),
-    ]).then(([vis, comp, prompts, sources, details]) => {
-      if (alive) setRaw({ vis, comp, prompts, sources, details })
+    ]).then(([vis, comp, prompts, sources]) => {
+      if (alive) setCore({ vis, comp, prompts, sources })
     }).catch(e => { if (alive) setError(e?.message || 'Erro ao carregar dados') })
     return () => { alive = false }
   }, [timeRange])
+
+  const raw = core && !pd.loading ? { ...core, details: pd.details } : null
 
   const data = useMemo<ReportData | null>(() => {
     if (!raw) return null
@@ -299,28 +301,32 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       return { name: row.name, score: row.score, isMe, topSources }
     })
 
-    // Daily mention rate per brand (canonical dedup per run)
-    const perDate: Record<string, { runs: number; mentions: Record<string, number> }> = {}
+    // Daily Peekaboo-style visibility score per brand: mean run score over ALL
+    // of the day's runs (absences count as 0) — same formula as the Overview
+    // timeline, so the report matches the dashboard
+    const perDate: Record<string, { runs: number; scoreSum: Record<string, number> }> = {}
     details.forEach(d => (d.history || []).forEach(run => {
       const day = (run.date || '').slice(0, 10)
       if (!day) return
-      const pd = perDate[day] ?? (perDate[day] = { runs: 0, mentions: {} })
-      pd.runs++
-      const seen = new Set<string>()
+      const acc = perDate[day] ?? (perDate[day] = { runs: 0, scoreSum: {} })
+      acc.runs++
+      acc.scoreSum[myName] = (acc.scoreSum[myName] || 0) + (run.score || 0)
+      // Competitors: best score among each entity's mentions in the run
+      const best: Record<string, number> = {}
       ;(run.brandMentions || []).forEach(mn => {
-        if (mn.type !== 'brand' && mn.type !== 'competitor') return
-        const name = mn.type === 'brand' ? myName : compName[mn.competitorId || '']
-        if (!name || seen.has(name)) return
-        seen.add(name)
-        pd.mentions[name] = (pd.mentions[name] || 0) + 1
+        if (mn.type !== 'competitor') return
+        const name = compName[mn.competitorId || '']
+        if (!name) return
+        if (typeof mn.score === 'number' && mn.score > (best[name] || 0)) best[name] = mn.score
       })
+      Object.entries(best).forEach(([name, sc]) => { acc.scoreSum[name] = (acc.scoreSum[name] || 0) + sc })
     }))
     const allBrandNames = [myName, ...comp.competitors.map(c => c.name)]
     const timeline = Object.entries(perDate)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([day, pd]) => {
+      .map(([day, acc]) => {
         const values: Record<string, number> = {}
-        allBrandNames.forEach(n => { values[n] = pd.runs > 0 ? Math.round(((pd.mentions[n] || 0) / pd.runs) * 100) : 0 })
+        allBrandNames.forEach(n => { values[n] = acc.runs > 0 ? Math.round((acc.scoreSum[n] || 0) / acc.runs) : 0 })
         return { date: new Date(day).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' }), values }
       })
 
@@ -408,7 +414,8 @@ export function useReportData(timeRange: string): { data: ReportData | null; loa
       donut: { owned: pctc(owned), earned: pctc(earned), competitor: pctc(competitor) },
       concentration,
     }
-  }, [raw])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [core, pd.details, pd.loading])
 
-  return { data, loading: !raw && !error, error }
+  return { data, loading: !raw && !error, error, partial: pd.partial }
 }

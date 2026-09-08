@@ -1,4 +1,5 @@
 import { Calendar, RefreshCw, ChevronDown } from 'lucide-react'
+import { StaleBadge } from '../ui/DataHealth'
 
 interface HeaderProps {
   title: string
@@ -24,6 +25,7 @@ export function Header({ title, subtitle, timeRange, onTimeRangeChange, lastUpda
         {subtitle && <p className="text-sm text-brand-muted mt-0.5">{subtitle}</p>}
       </div>
       <div className="flex items-center gap-3">
+        <StaleBadge />
         {lastUpdated && (
           <span className="text-xs text-brand-dim hidden sm:flex items-center gap-1">
             <RefreshCw size={11} />
